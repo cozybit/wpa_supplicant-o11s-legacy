@@ -753,9 +753,12 @@ struct wpa_driver_ap_params {
 
 struct wpa_driver_mesh_join_params {
 	const u8 *meshid;
+	int meshid_len;
 	int *basic_rates;
 	int mcast_rate;
 	char *setup_ies;
+	int setup_ie_len;
+	int freq;
 // XXX: later struct mesh_conf *conf;
 #define WPA_DRIVER_MESH_FLAG_SAE_AUTH
 #define WPA_DRIVER_MESH_FLAG_OPEN_AUTH
@@ -2642,6 +2645,7 @@ struct wpa_driver_ops {
 	 * @conf: Mesh configuration parameters
 	 * Returns: 0 on success, -1 on failure
 	 */
+	/* XXX: maybe just take a wpa_driver_associate_params? */
 	int (*join_mesh)(void *priv, struct wpa_driver_mesh_join_params *params);
 };
 

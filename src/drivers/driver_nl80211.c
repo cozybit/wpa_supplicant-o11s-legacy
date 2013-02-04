@@ -7009,6 +7009,70 @@ static int wpa_driver_nl80211_connect(
 }
 
 
+static int wpa_driver_nl80211_join_mesh(
+	void *priv,
+	struct wpa_driver_mesh_join_params *params)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	struct nl_msg *msg;
+	int ret = 0;
+
+	msg = nlmsg_alloc();
+	if (!msg)
+		return -1;
+
+	if (wpa_driver_nl80211_set_mode(&drv->first_bss,
+					NL80211_IFTYPE_MESH_POINT))
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: mesh join (ifindex=%d)", drv->ifindex);
+	nl80211_cmd(drv, msg, 0, NL80211_CMD_JOIN_MESH);
+
+	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, drv->ifindex);
+	if (params->freq) {
+		wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq);
+		NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, params->freq);
+	}
+	if (params->meshid) {
+		wpa_hexdump_ascii(MSG_DEBUG, "  * SSID",
+				  params->meshid, params->meshid_len);
+		NLA_PUT(msg, NL80211_ATTR_MESH_ID, params->meshid_len,
+			params->meshid);
+		if (params->meshid_len > sizeof(drv->ssid))
+			goto nla_put_failure;
+		os_memcpy(drv->ssid, params->meshid, params->meshid_len);
+		drv->ssid_len = params->meshid_len;
+	}
+	/* XXX: mesh setup is actually nested */
+	/*
+	if (params->setup_ies) {
+		wpa_hexdump(MSG_DEBUG, "  * IEs",
+			    params->setup_ies, params->setup_ie_len);
+		NLA_PUT(msg, NL80211_MESH_SETUP_IE, params->setup_ie_len,
+			params->setup_ies);
+	}
+	*/
+
+	if (ret)
+		goto nla_put_failure;
+
+	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
+	msg = NULL;
+	if (ret) {
+		wpa_printf(MSG_DEBUG, "nl80211: mesh join failed: ret=%d "
+			   "(%s)", ret, strerror(-ret));
+		goto nla_put_failure;
+	}
+	ret = 0;
+	wpa_printf(MSG_DEBUG, "nl80211: mesh join request send successfully");
+
+nla_put_failure:
+	nlmsg_free(msg);
+	return ret;
+}
+
+
 static int wpa_driver_nl80211_associate(
 	void *priv, struct wpa_driver_associate_params *params)
 {
@@ -9296,6 +9360,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.deauthenticate = wpa_driver_nl80211_deauthenticate,
 	.authenticate = wpa_driver_nl80211_authenticate,
 	.associate = wpa_driver_nl80211_associate,
+	.join_mesh = wpa_driver_nl80211_join_mesh,
 	.global_init = nl80211_global_init,
 	.global_deinit = nl80211_global_deinit,
 	.init2 = wpa_driver_nl80211_init,
