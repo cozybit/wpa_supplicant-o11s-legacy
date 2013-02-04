@@ -3,7 +3,7 @@
  * Copyright (c) 2013, Thomas Pedersen <thomas@cozybit.com>
  * Copyright (c) 2013, cozybit, Inc.
  *
- * XXX: license?
+ * All rights reserved.
  */
 
 #ifndef MESH_H

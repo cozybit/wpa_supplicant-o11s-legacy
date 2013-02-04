@@ -3,7 +3,7 @@
  * Copyright (c) 2013, Thomas Pedersen <thomas@cozybit.com>
  * Copyright (c) 2013, cozybit, Inc.
  *
- * XXX: license?
+ * All rights reserved.
  */
 
 #include "utils/includes.h"
@@ -24,6 +24,23 @@
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
-	wpa_msg(wpa_s, MSG_INFO, "JOINING MESH!");
-	return 0;
+	struct wpa_driver_mesh_join_params params;
+	int ret = 0;
+
+	if (!ssid || !ssid->ssid || !ssid->ssid_len) {
+		ret = -ENOENT;
+		goto out;
+	}
+
+	os_memset(&params, 0, sizeof(params));
+	params.meshid = ssid->ssid;
+	params.meshid_len = ssid->ssid_len;
+	params.freq = ssid->frequency;
+	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",
+		wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
+	ret = wpa_drv_join_mesh(wpa_s, &params);
+	if (ret)
+		wpa_msg(wpa_s, MSG_ERROR, "mesh join error=%d\n", ret);
+out:
+	return ret;
 }
