@@ -1267,6 +1267,25 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
+	if (ssid->mode == WPAS_MODE_MESH) {
+#ifdef CONFIG_MESH
+		if (!(wpa_s->drv_flags & WPA_DRIVER_FLAGS_MESH)) {
+			wpa_msg(wpa_s, MSG_INFO, "Driver does not support "
+				"mesh mode");
+			return;
+		}
+		if (wpa_supplicant_join_mesh(wpa_s, ssid) < 0) {
+			wpa_msg(wpa_s, MSG_ERROR, "couldn't join mesh");
+			return;
+		}
+		wpa_s->current_bss = bss;
+#else /* CONFIG_MESH */
+		wpa_msg(wpa_s, MSG_ERROR, "mesh mode support not included in "
+			"the build");
+#endif /* CONFIG_MESH */
+		return;
+	}
+
 #ifdef CONFIG_TDLS
 	if (bss)
 		wpa_tdls_ap_ies(wpa_s->wpa, (const u8 *) (bss + 1),

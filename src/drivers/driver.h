@@ -117,6 +117,7 @@ struct hostapd_hw_modes {
 #define IEEE80211_MODE_INFRA	0
 #define IEEE80211_MODE_IBSS	1
 #define IEEE80211_MODE_AP	2
+#define IEEE80211_MODE_MESH	5
 
 #define IEEE80211_CAP_ESS	0x0001
 #define IEEE80211_CAP_IBSS	0x0002
@@ -750,6 +751,18 @@ struct wpa_driver_ap_params {
 	int disable_dgaf;
 };
 
+struct wpa_driver_mesh_join_params {
+	const u8 *meshid;
+	int *basic_rates;
+	int mcast_rate;
+	char *setup_ies;
+// XXX: later struct mesh_conf *conf;
+#define WPA_DRIVER_MESH_FLAG_SAE_AUTH
+#define WPA_DRIVER_MESH_FLAG_OPEN_AUTH
+#define WPA_DRIVER_MESH_FLAG_AMPE
+	unsigned int flags;
+};
+
 /**
  * struct wpa_driver_capa - Driver capability information
  */
@@ -842,6 +855,10 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS_SAE				0x02000000
 /* Driver makes use of OBSS scan mechanism in wpa_supplicant */
 #define WPA_DRIVER_FLAGS_OBSS_SCAN			0x04000000
+/* Driver supports mesh */
+#define WPA_DRIVER_FLAGS_MESH				0x08000000
+/* Driver supports RSN mesh with user space MPM */
+#define WPA_DRIVER_FLAGS_MESH_RSN			0x10000000
 	unsigned int flags;
 
 	int max_scan_ssids;
@@ -958,7 +975,12 @@ enum wpa_driver_if_type {
 	 * WPA_IF_P2P_GROUP - P2P Group interface (will become either
 	 * WPA_IF_P2P_GO or WPA_IF_P2P_CLIENT, but the role is not yet known)
 	 */
-	WPA_IF_P2P_GROUP
+	WPA_IF_P2P_GROUP,
+
+	/**
+	 * WPA_IF_MESH - Mesh interface
+	 */
+	WPA_IF_MESH,
 };
 
 struct wpa_init_params {
@@ -1902,7 +1924,7 @@ struct wpa_driver_ops {
 	 * @session_timeout: Session timeout for the station
 	 * Returns: 0 on success, -1 on failure
 	 */
-	int (*set_radius_acl_auth)(void *priv, const u8 *mac, int accepted, 
+	int (*set_radius_acl_auth)(void *priv, const u8 *mac, int accepted,
 				   u32 session_timeout);
 
 	/**
@@ -2612,6 +2634,15 @@ struct wpa_driver_ops {
 	 * avoid frequency conflict in single channel concurrency.
 	 */
 	int (*switch_channel)(void *priv, unsigned int freq);
+
+	/**
+	 * join_mesh - Join a mesh network
+	 * @priv: Private driver interface data
+	 * @setup: Mesh setup parameters
+	 * @conf: Mesh configuration parameters
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*join_mesh)(void *priv, struct wpa_driver_mesh_join_params *params);
 };
 
 

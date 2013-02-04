@@ -4954,6 +4954,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpa_supplicant_ctrl_iface_ibss_rsn(wpa_s, buf + 9))
 			reply_len = -1;
 #endif /* CONFIG_IBSS_RSN */
+#ifdef CONFIG_MESH
+		/* hmm some kind of mesh join command here */
+#endif /* CONFIG_MESH */
 #ifdef CONFIG_P2P
 	} else if (os_strncmp(buf, "P2P_FIND ", 9) == 0) {
 		if (p2p_ctrl_find(wpa_s, buf + 9))

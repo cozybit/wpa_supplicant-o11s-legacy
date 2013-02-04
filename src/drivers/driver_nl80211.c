@@ -2507,6 +2507,9 @@ static int wiphy_info_handler(struct nl_msg *msg, void *arg)
 			case NL80211_IFTYPE_AP:
 				capa->flags |= WPA_DRIVER_FLAGS_AP;
 				break;
+			case NL80211_IFTYPE_MESH_POINT:
+				capa->flags |= WPA_DRIVER_FLAGS_MESH;
+				break;
 			case NL80211_IFTYPE_P2P_GO:
 				p2p_go_supported = 1;
 				break;
@@ -8199,6 +8202,9 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 	}
 #endif /* HOSTAPD */
 
+#ifdef CONFIG_MESH
+	/* TODO: enable mesh if */
+#endif
 	if (drv->global)
 		drv->global->if_add_ifindex = ifidx;
 
