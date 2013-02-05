@@ -921,6 +921,11 @@ struct hostapd_sta_add_params {
 	const struct ieee80211_ht_capabilities *ht_capabilities;
 	const struct ieee80211_vht_capabilities *vht_capabilities;
 	u32 flags; /* bitmask of WPA_STA_* flags */
+#ifdef CONFIG_MESH
+	enum mesh_plink_state plink_state;
+	/* TODO: plink_action */
+	/* TODO: mesh power mode */
+#endif /* CONFIG_MESH */
 	int set; /* Set STA parameters instead of add */
 	u8 qosinfo;
 };
