@@ -7043,6 +7043,17 @@ static int wpa_driver_nl80211_join_mesh(
 			params->meshid);
 	}
 
+	if (params->flags & WPA_DRIVER_MESH_FLAG_USER_MPM) {
+		/* XXX: this is a hack to smooth over the actual nl80211 API!
+		 * Since it doesn't really support a "MPM in userspace"
+		 * directive, fake secure mesh for now to stop the kernel MPM.
+		 * Turning off MESHCONF_AUTO_OPEN_PLINKS might works as well?
+		 **/
+		params->flags = WPA_DRIVER_MESH_FLAG_SAE_AUTH;
+		params->flags |= WPA_DRIVER_MESH_FLAG_AMPE;
+	}
+	wpa_printf(MSG_DEBUG, "  * flags=%08X", params->flags);
+
 	container = nla_nest_start(msg, NL80211_ATTR_MESH_SETUP);
 	if (!container)
 		goto nla_put_failure;

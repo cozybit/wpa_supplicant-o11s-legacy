@@ -760,9 +760,10 @@ struct wpa_driver_mesh_join_params {
 	int ie_len;
 	int freq;
 // XXX: later struct mesh_conf *conf;
-#define WPA_DRIVER_MESH_FLAG_OPEN_AUTH	0x00000001
-#define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000002
-#define WPA_DRIVER_MESH_FLAG_AMPE	0x00000004
+#define WPA_DRIVER_MESH_FLAG_USER_MPM	0x00000001
+#define WPA_DRIVER_MESH_FLAG_DRIVER_MPM	0x00000002
+#define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000004
+#define WPA_DRIVER_MESH_FLAG_AMPE	0x00000008
 	unsigned int flags;
 };
 
