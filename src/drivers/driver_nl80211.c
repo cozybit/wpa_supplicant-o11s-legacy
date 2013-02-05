@@ -3331,8 +3331,8 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 
 static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 {
-	if (nl80211_alloc_mgmt_handle(bss))
-		return -1;
+	if (bss->nl_mgmt == NULL)
+		return 0;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with mesh "
 		   "handle %p", bss->nl_mgmt);
@@ -7456,14 +7456,14 @@ done:
 		nl80211_mgmt_unsubscribe(bss, "mode change");
 	}
 
-	if (is_mesh_interface(nlmode))
-		if (nl80211_mgmt_subscribe_mesh(bss))
-			return -1;
-
 	if (!bss->in_deinit && !is_ap_interface(nlmode) &&
 	    nl80211_mgmt_subscribe_non_ap(bss) < 0)
 		wpa_printf(MSG_DEBUG, "nl80211: Failed to register Action "
 			   "frame processing - ignore for now");
+
+	if (is_mesh_interface(nlmode))
+		if (nl80211_mgmt_subscribe_mesh(bss))
+			return -1;
 
 	return 0;
 }
