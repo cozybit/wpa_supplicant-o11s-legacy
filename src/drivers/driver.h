@@ -3192,7 +3192,13 @@ enum wpa_event_type {
 	 * to reduce issues due to interference or internal co-existence
 	 * information in the driver.
 	 */
-	EVENT_AVOID_FREQUENCIES
+	EVENT_AVOID_FREQUENCIES,
+
+	/**
+	 * EVENT_NEW_PEER_CANDIDATE - new (unknown) mesh peer notification
+	 */
+	EVENT_NEW_PEER_CANDIDATE
+
 };
 
 
@@ -3818,6 +3824,22 @@ union wpa_event_data {
 	 * This is used as the data with EVENT_AVOID_FREQUENCIES.
 	 */
 	struct wpa_freq_range_list freq_range;
+
+	/**
+	 * struct mesh_peer
+	 *
+	 * @peer: peer address
+	 * @ies: beacon IEs
+	 * @ie_len: length of @ies
+	 *
+	 * Notification of new (peer doesn't exist in driver) mesh peer.
+	 */
+	struct mesh_peer {
+		u8 peer[ETH_ALEN];
+		u8 *ies;
+		int ie_len;
+	} mesh_peer;
+
 };
 
 /**

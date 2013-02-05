@@ -51,6 +51,7 @@
 #include "offchannel.h"
 #include "hs20_supplicant.h"
 #include "wnm_sta.h"
+#include "mesh.h"
 
 const char *wpa_supplicant_version =
 "wpa_supplicant v" VERSION_STR "\n"
