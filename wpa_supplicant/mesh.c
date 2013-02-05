@@ -37,12 +37,25 @@ static int
 wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid)
 {
+	u8 *ies;
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
 		return 0;
 
 	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
 	 * mesh, and init MPM in general */
+	wpa_s->ifmsh = os_zalloc(sizeof(*wpa_s->ifmsh));
+	if (!wpa_s->ifmsh)
+		return -ENOMEM;
+
+	/* need dummy RSN IEs so peer kernel doesn't ignore our beacons... */
+	wpa_s->ifmsh->ies = os_zalloc(2);
+	if (!wpa_s->ifmsh->ies)
+		return -ENOMEM;
+
+	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
+	wpa_s->ifmsh->ies[1] = 0;
+	wpa_s->ifmsh->ie_len = 2;
 	return 0;
 }
 
@@ -77,6 +90,11 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
 		goto out;
+	}
+
+	if (wpa_s->ifmsh) {
+		params.ies = wpa_s->ifmsh->ies;
+		params.ie_len = wpa_s->ifmsh->ie_len;
 	}
 
 	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",

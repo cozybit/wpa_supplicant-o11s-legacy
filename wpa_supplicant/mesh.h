@@ -13,6 +13,8 @@
  * mesh_iface - per-interface mesh data
  */
 struct mesh_iface {
+	u8 *ies;
+	int ie_len;
 };
 
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
