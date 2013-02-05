@@ -365,6 +365,11 @@ static int is_p2p_interface(enum nl80211_iftype nlmode)
 		nlmode == NL80211_IFTYPE_P2P_GO);
 }
 
+static int is_mesh_interface(enum nl80211_iftype nlmode)
+{
+	return nlmode == NL80211_IFTYPE_MESH_POINT;
+}
+
 
 struct nl80211_bss_info_arg {
 	struct wpa_driver_nl80211_data *drv;
@@ -3289,6 +3294,27 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 	return 0;
 }
 
+static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
+{
+	if (nl80211_alloc_mgmt_handle(bss))
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with mesh "
+		   "handle %p", bss->nl_mgmt);
+
+	/* Request Auth frames for mesh SAE */
+	if (nl80211_register_frame(bss, bss->nl_mgmt,
+				   (WLAN_FC_TYPE_MGMT << 2) |
+				   (WLAN_FC_STYPE_AUTH << 4),
+				   NULL, 0) < 0)
+		goto out_err;
+
+	return 0;
+out_err:
+	eloop_unregister_read_sock(nl_socket_get_fd(bss->nl_mgmt));
+	nl_destroy_handles(&bss->nl_mgmt);
+	return -1;
+}
 
 static int nl80211_register_spurious_class3(struct i802_bss *bss)
 {
@@ -7368,6 +7394,10 @@ done:
 	} else {
 		nl80211_mgmt_unsubscribe(bss, "mode change");
 	}
+
+	if (is_mesh_interface(nlmode))
+		if (nl80211_mgmt_subscribe_mesh(bss))
+			return -1;
 
 	if (!bss->in_deinit && !is_ap_interface(nlmode) &&
 	    nl80211_mgmt_subscribe_non_ap(bss) < 0)
