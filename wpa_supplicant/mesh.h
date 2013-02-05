@@ -8,6 +8,13 @@
 
 #ifndef MESH_H
 #define MESH_H
+
+/**
+ * mesh_iface - per-interface mesh data
+ */
+struct mesh_iface {
+};
+
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid);
 #endif /* MESH_H */

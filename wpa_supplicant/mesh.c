@@ -21,6 +21,31 @@
 #include "mesh.h"
 #include "notify.h"
 
+static void
+wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
+{
+	if (!wpa_s->ifmsh)
+		return;
+
+	os_free(wpa_s->ifmsh);
+	wpa_s->ifmsh = NULL;
+
+	return;
+}
+
+static int
+wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
+			 struct wpa_ssid *ssid)
+{
+	if (!wpa_s->conf->user_mpm)
+		/* not much for us to do here */
+		return 0;
+
+	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
+	 * mesh, and init MPM in general */
+	return 0;
+}
+
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
@@ -32,6 +57,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 		goto out;
 	}
 
+	wpa_supplicant_mesh_deinit(wpa_s);
+
 	os_memset(&params, 0, sizeof(params));
 	params.meshid = ssid->ssid;
 	params.meshid_len = ssid->ssid_len;
@@ -39,6 +66,12 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	params.flags = wpa_s->conf->user_mpm ?
 		       WPA_DRIVER_MESH_FLAG_USER_MPM :
 		       WPA_DRIVER_MESH_FLAG_DRIVER_MPM;
+
+	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
+		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
+		goto out;
+	}
+
 	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",
 		wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
 	ret = wpa_drv_join_mesh(wpa_s, &params);
