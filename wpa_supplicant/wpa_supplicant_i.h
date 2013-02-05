@@ -529,6 +529,10 @@ struct wpa_supplicant {
 	void *ap_configured_cb_data;
 #endif /* CONFIG_AP */
 
+#ifdef CONFIG_MESH
+	struct mesh_iface *ifmsh;
+#endif /* CONFIG_MESH */
+
 	unsigned int off_channel_freq;
 	struct wpabuf *pending_action_tx;
 	u8 pending_action_src[ETH_ALEN];
