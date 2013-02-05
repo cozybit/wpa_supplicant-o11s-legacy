@@ -2980,6 +2980,11 @@ static void wpa_supplicant_deinit_iface(struct wpa_supplicant *wpa_s,
 		wpa_s->ctrl_iface = NULL;
 	}
 
+	if (wpa_s->ifmsh) {
+		wpa_supplicant_mesh_iface_deinit(wpa_s->ifmsh);
+		wpa_s->ifmsh = NULL;
+	}
+
 	if (wpa_s->conf != NULL) {
 		wpa_config_free(wpa_s->conf);
 		wpa_s->conf = NULL;

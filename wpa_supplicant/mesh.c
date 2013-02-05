@@ -24,12 +24,18 @@
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
-	if (!wpa_s->ifmsh)
+	wpa_supplicant_mesh_iface_deinit(wpa_s->ifmsh);
+	wpa_s->ifmsh = NULL;
+	return;
+}
+
+void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh)
+{
+	if (!ifmsh)
 		return;
 
-	os_free(wpa_s->ifmsh);
-	wpa_s->ifmsh = NULL;
-
+	os_free(ifmsh->ies);
+	os_free(ifmsh);
 	return;
 }
 
