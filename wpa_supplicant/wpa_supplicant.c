@@ -49,6 +49,7 @@
 #include "scan.h"
 #include "offchannel.h"
 #include "hs20_supplicant.h"
+#include "mesh.h"
 
 const char *wpa_supplicant_version =
 "wpa_supplicant v" VERSION_STR "\n"

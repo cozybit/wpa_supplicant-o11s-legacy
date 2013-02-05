@@ -3092,7 +3092,12 @@ enum wpa_event_type {
 	 *
 	 * This event can be used to request a WNM operation to be performed.
 	 */
-	EVENT_WNM
+	EVENT_WNM,
+
+	/**
+	 * EVENT_NEW_PEER_CANDIDATE - new (unknown) mesh peer notification
+	 */
+	EVENT_NEW_PEER_CANDIDATE,
 };
 
 
@@ -3717,6 +3722,22 @@ union wpa_event_data {
 		int ht_enabled;
 		int ch_offset;
 	} ch_switch;
+
+	/**
+	 * struct mesh_peer
+	 *
+	 * @peer: peer address
+	 * @ies: beacon IEs
+	 * @ie_len: length of @ies
+	 *
+	 * Notification of new (peer doesn't exist in driver) mesh peer.
+	 */
+	struct mesh_peer {
+		u8 peer[ETH_ALEN];
+		u8 *ies;
+		int ie_len;
+	} mesh_peer;
+
 };
 
 /**

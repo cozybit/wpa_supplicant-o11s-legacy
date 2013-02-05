@@ -46,6 +46,13 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	return 0;
 }
 
+void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
+			  const u8 *ies, int ie_len)
+{
+	wpa_msg(wpa_s, MSG_INFO,
+		"new peer notification for " MACSTR, MAC2STR(addr));
+}
+
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
