@@ -1965,6 +1965,38 @@ static void nl80211_cqm_event(struct wpa_driver_nl80211_data *drv,
 }
 
 
+static void nl80211_new_peer_candidate(struct wpa_driver_nl80211_data *drv,
+				       struct nlattr **tb)
+{
+	u8 *addr, *ie;
+	int ie_len;
+	union wpa_event_data data;
+
+	if (drv->nlmode != NL80211_IFTYPE_MESH_POINT)
+		return;
+
+	if (!tb[NL80211_ATTR_MAC] || !tb[NL80211_ATTR_IE])
+		return;
+
+	ie = nla_data(tb[NL80211_ATTR_IE]);
+	ie_len = nla_len(tb[NL80211_ATTR_IE]);
+	addr = nla_data(tb[NL80211_ATTR_MAC]);
+	wpa_printf(MSG_DEBUG, "nl80211: New peer candidate" MACSTR, MAC2STR(addr));
+
+	os_memset(&data, 0, sizeof(data));
+	os_memcpy(data.mesh_peer.peer, addr, ETH_ALEN);
+	if ((data.mesh_peer.ies = os_zalloc(ie_len)) == NULL) {
+		wpa_printf(MSG_ERROR, "nl80211: couldn't alloc peer IEs!");
+		return;
+	}
+	os_memcpy(data.mesh_peer.ies, ie, ie_len);
+	data.mesh_peer.ie_len = ie_len;
+	wpa_supplicant_event(drv->ctx, EVENT_NEW_PEER_CANDIDATE, &data);
+	os_free(data.mesh_peer.ies);
+	return;
+}
+
+
 static void nl80211_new_station_event(struct wpa_driver_nl80211_data *drv,
 				      struct nlattr **tb)
 {
@@ -2292,6 +2324,9 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
 		break;
 	case NL80211_CMD_TDLS_OPER:
 		nl80211_tdls_oper_event(drv, tb);
+		break;
+	case NL80211_CMD_NEW_PEER_CANDIDATE:
+		nl80211_new_peer_candidate(drv, tb);
 		break;
 	default:
 		wpa_printf(MSG_DEBUG, "nl80211: Ignored unknown event "
