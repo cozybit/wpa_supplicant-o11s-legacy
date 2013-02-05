@@ -36,6 +36,9 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	params.meshid = ssid->ssid;
 	params.meshid_len = ssid->ssid_len;
 	params.freq = ssid->frequency;
+	params.flags = wpa_s->conf->user_mpm ?
+		       WPA_DRIVER_MESH_FLAG_USER_MPM :
+		       WPA_DRIVER_MESH_FLAG_DRIVER_MPM;
 	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",
 		wpa_ssid_txt(ssid->ssid, ssid->ssid_len));
 	ret = wpa_drv_join_mesh(wpa_s, &params);
