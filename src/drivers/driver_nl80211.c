@@ -7347,6 +7347,27 @@ static u32 sta_flags_nl80211(int flags)
 	return f;
 }
 
+#ifdef CONFIG_MESH
+static u32 sta_plink_state_nl80211(enum mesh_plink_state state)
+{
+	switch (state) {
+	case PLINK_LISTEN:
+		return NL80211_PLINK_LISTEN;
+	case PLINK_OPEN_SENT:
+		return NL80211_PLINK_OPN_SNT;
+	case PLINK_OPEN_RCVD:
+		return NL80211_PLINK_OPN_RCVD;
+	case PLINK_CNF_RCVD:
+		return NL80211_PLINK_CNF_RCVD;
+	case PLINK_ESTAB:
+		return NL80211_PLINK_ESTAB;
+	case PLINK_HOLDING:
+		return NL80211_PLINK_HOLDING;
+	case PLINK_BLOCKED:
+		return NL80211_PLINK_BLOCKED;
+	}
+}
+#endif /* CONFIG_MESH */
 
 static int wpa_driver_nl80211_sta_add(void *priv,
 				      struct hostapd_sta_add_params *params)
@@ -7447,6 +7468,11 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 	wpa_printf(MSG_DEBUG, "  * flags set=0x%x mask=0x%x",
 		   upd.set, upd.mask);
 	NLA_PUT(msg, NL80211_ATTR_STA_FLAGS2, sizeof(upd), &upd);
+
+#ifdef CONFIG_MESH
+	NLA_PUT_U8(msg, NL80211_ATTR_STA_PLINK_STATE,
+			sta_plink_state_nl80211(params->plink_state));
+#endif /* CONFIG_MESH */
 
 	if (params->flags & WPA_STA_WMM) {
 		struct nlattr *wme = nla_nest_start(msg, NL80211_ATTR_STA_WME);
