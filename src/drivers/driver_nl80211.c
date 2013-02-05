@@ -9737,6 +9737,8 @@ static enum nl80211_iftype wpa_driver_nl80211_if_type(
 		return NL80211_IFTYPE_P2P_GO;
 	case WPA_IF_P2P_DEVICE:
 		return NL80211_IFTYPE_P2P_DEVICE;
+	case WPA_IF_MESH:
+		return NL80211_IFTYPE_MESH_POINT;
 	}
 	return -1;
 }
