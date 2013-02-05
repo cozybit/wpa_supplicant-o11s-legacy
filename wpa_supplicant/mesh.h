@@ -21,4 +21,5 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid);
 void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			  const u8 *ies, int ie_len);
+void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh);
 #endif /* MESH_H */
