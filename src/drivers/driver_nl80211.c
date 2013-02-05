@@ -7016,6 +7016,7 @@ static int wpa_driver_nl80211_join_mesh(
 	struct i802_bss *bss = priv;
 	struct wpa_driver_nl80211_data *drv = bss->drv;
 	struct nl_msg *msg;
+	struct nlattr *container;
 	int ret = 0;
 
 	msg = nlmsg_alloc();
@@ -7030,6 +7031,7 @@ static int wpa_driver_nl80211_join_mesh(
 	nl80211_cmd(drv, msg, 0, NL80211_CMD_JOIN_MESH);
 
 	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, drv->ifindex);
+	/* XXX: need chtype too in case we want HT */
 	if (params->freq) {
 		wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq);
 		NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, params->freq);
@@ -7039,23 +7041,29 @@ static int wpa_driver_nl80211_join_mesh(
 				  params->meshid, params->meshid_len);
 		NLA_PUT(msg, NL80211_ATTR_MESH_ID, params->meshid_len,
 			params->meshid);
-		if (params->meshid_len > sizeof(drv->ssid))
-			goto nla_put_failure;
-		os_memcpy(drv->ssid, params->meshid, params->meshid_len);
-		drv->ssid_len = params->meshid_len;
 	}
-	/* XXX: mesh setup is actually nested */
-	/*
-	if (params->setup_ies) {
-		wpa_hexdump(MSG_DEBUG, "  * IEs",
-			    params->setup_ies, params->setup_ie_len);
-		NLA_PUT(msg, NL80211_MESH_SETUP_IE, params->setup_ie_len,
-			params->setup_ies);
-	}
-	*/
 
-	if (ret)
+	container = nla_nest_start(msg, NL80211_ATTR_MESH_SETUP);
+	if (!container)
 		goto nla_put_failure;
+
+	if (params->ies) {
+		wpa_hexdump(MSG_DEBUG, "  * IEs",
+			    params->ies, params->ie_len);
+		NLA_PUT(msg, NL80211_MESH_SETUP_IE, params->ie_len,
+			params->ies);
+	}
+	/* WPA_DRIVER_MESH_FLAG_OPEN_AUTH is treated as default by nl80211 */
+	if (params->flags & WPA_DRIVER_MESH_FLAG_SAE_AUTH)
+		NLA_PUT_FLAG(msg, NL80211_MESH_SETUP_USERSPACE_AUTH);
+	if (params->flags & WPA_DRIVER_MESH_FLAG_AMPE)
+		NLA_PUT_FLAG(msg, NL80211_MESH_SETUP_USERSPACE_AMPE);
+	nla_nest_end(msg, container);
+
+	container = nla_nest_start(msg, NL80211_ATTR_MESH_CONFIG);
+	if (!container)
+		goto nla_put_failure;
+	nla_nest_end(msg, container);
 
 	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
 	msg = NULL;

@@ -756,13 +756,13 @@ struct wpa_driver_mesh_join_params {
 	int meshid_len;
 	int *basic_rates;
 	int mcast_rate;
-	char *setup_ies;
-	int setup_ie_len;
+	char *ies;
+	int ie_len;
 	int freq;
 // XXX: later struct mesh_conf *conf;
-#define WPA_DRIVER_MESH_FLAG_SAE_AUTH
-#define WPA_DRIVER_MESH_FLAG_OPEN_AUTH
-#define WPA_DRIVER_MESH_FLAG_AMPE
+#define WPA_DRIVER_MESH_FLAG_OPEN_AUTH	0x00000001
+#define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000002
+#define WPA_DRIVER_MESH_FLAG_AMPE	0x00000004
 	unsigned int flags;
 };
 
