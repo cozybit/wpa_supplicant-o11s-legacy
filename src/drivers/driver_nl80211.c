@@ -5883,8 +5883,9 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 
 	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, if_nametoindex(bss->ifname));
 	NLA_PUT(msg, NL80211_ATTR_MAC, ETH_ALEN, params->addr);
-	NLA_PUT(msg, NL80211_ATTR_STA_SUPPORTED_RATES, params->supp_rates_len,
-		params->supp_rates);
+	if (params->supp_rates || !params->set)
+		NLA_PUT(msg, NL80211_ATTR_STA_SUPPORTED_RATES,
+			params->supp_rates_len, params->supp_rates);
 	if (!params->set) {
 		NLA_PUT_U16(msg, NL80211_ATTR_STA_AID, params->aid);
 		NLA_PUT_U16(msg, NL80211_ATTR_STA_LISTEN_INTERVAL,
