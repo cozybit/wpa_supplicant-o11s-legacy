@@ -42,6 +42,7 @@
 #include "scan.h"
 #include "offchannel.h"
 #include "interworking.h"
+#include "mesh.h"
 
 
 #ifndef CONFIG_NO_SCAN_PROCESSING
