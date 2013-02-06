@@ -117,6 +117,18 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	wpa_mesh_new_mesh_peer(wpa_s, addr, &elems);
 }
 
+/* cf. ap_mgmt_rx */
+void mesh_mgmt_rx(void *ctx, struct rx_mgmt *rx_mgmt)
+{
+	struct wpa_supplicant *wpa_s = ctx;
+	struct hostapd_frame_info fi;
+	os_memset(&fi, 0, sizeof(fi));
+	fi.datarate = rx_mgmt->datarate;
+	fi.ssi_signal = rx_mgmt->ssi_signal;
+	ieee802_11_mgmt(wpa_s->ifmsh->bss[0], rx_mgmt->frame,
+			rx_mgmt->frame_len, &fi);
+}
+
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid)
 {
