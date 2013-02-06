@@ -23,7 +23,7 @@ struct meshd_data {
  */
 struct mesh_iface {
 	struct meshd_data *bss;
-	u8 *ies;
+	char *ies;
 	int ie_len;
 };
 
