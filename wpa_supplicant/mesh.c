@@ -19,6 +19,7 @@
 #include "wpa_supplicant_i.h"
 #include "driver_i.h"
 #include "mesh.h"
+#include "mesh_mpm.h"
 #include "notify.h"
 
 static void
@@ -35,6 +36,7 @@ void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh)
 		return;
 
 	os_free(ifmsh->ies);
+	os_free(ifmsh->bss);
 	os_free(ifmsh);
 	return;
 }
@@ -43,7 +45,6 @@ static int
 wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid)
 {
-	u8 *ies;
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
 		return 0;
@@ -57,19 +58,46 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	/* need dummy RSN IEs so peer kernel doesn't ignore our beacons... */
 	wpa_s->ifmsh->ies = os_zalloc(2);
 	if (!wpa_s->ifmsh->ies)
-		return -ENOMEM;
+		goto out_free;
 
 	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
 	wpa_s->ifmsh->ies[1] = 0;
 	wpa_s->ifmsh->ie_len = 2;
+
+	wpa_s->ifmsh->bss = os_zalloc(sizeof *wpa_s->ifmsh->bss);
+	if (!wpa_s->ifmsh->bss)
+		goto out_free;
+	wpa_s->ifmsh->bss->max_num_sta = 10;
+
+
 	return 0;
+out_free:
+	if (wpa_s->ifmsh) {
+		os_free(wpa_s->ifmsh->ies);
+		os_free(wpa_s->ifmsh->bss);
+		os_free(wpa_s->ifmsh);
+	}
+	return -ENOMEM;
 }
 
 void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			  const u8 *ies, int ie_len)
 {
+	struct ieee802_11_elems elems;
+
 	wpa_msg(wpa_s, MSG_INFO,
 		"new peer notification for " MACSTR, MAC2STR(addr));
+
+        if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed) {
+                wpa_msg(wpa_s, MSG_INFO, "Could not parse beacon from " MACSTR,
+                           MAC2STR(addr));
+                return;
+        }
+
+	/* TODO: verify this peer matches MBSS before inserting! */
+	/* TODO: process in SAE, which will allocate station if authenticated. */
+	/* just immediately allocate peer for now, and insert into driver */
+	wpa_mesh_new_mesh_peer(wpa_s, addr, &elems);
 }
 
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
