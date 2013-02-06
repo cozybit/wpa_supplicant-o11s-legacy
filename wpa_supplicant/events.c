@@ -3117,6 +3117,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				break;
 			}
 
+#ifdef CONFIG_MESH
+			if (wpa_s->ifmsh) {
+				mesh_mgmt_rx(wpa_s, &data->rx_mgmt);
+				break;
+			}
+#endif
 			wpa_dbg(wpa_s, MSG_DEBUG, "AP: ignore received "
 				"management frame in non-AP mode");
 			break;
