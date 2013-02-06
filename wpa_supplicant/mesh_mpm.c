@@ -106,7 +106,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       struct ieee802_11_elems *elems)
 {
 	struct hostapd_sta_add_params params;
-	struct wmm_information_element *wmm;
+	/* struct wmm_information_element *wmm; */
 	struct meshd_data *data = wpa_s->ifmsh->bss;
 	struct sta_info *sta = mesh_sta_add(data, addr);
 
