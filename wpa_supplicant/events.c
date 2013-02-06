@@ -42,6 +42,7 @@
 #include "scan.h"
 #include "offchannel.h"
 #include "interworking.h"
+#include "mesh.h"
 
 
 static int wpas_temp_disabled(struct wpa_supplicant *wpa_s,
