@@ -102,6 +102,27 @@ mesh_sta_add(struct hostapd_data *data, const u8 *addr)
 	return sta;
 }
 
+/* configure peering state in ours and driver's station entry */
+static void
+wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
+			 enum mesh_plink_state state)
+{
+	struct hostapd_sta_add_params params;
+	int ret;
+
+	sta->plink_state = state;
+
+	os_memset(&params, 0, sizeof(params));
+	params.addr = sta->addr;
+	params.plink_state = state;
+	params.set = 1;
+
+	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
+		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
+			MAC2STR(sta->addr), ret);
+	return;
+}
+
 void
 wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       struct ieee802_11_elems *elems)
@@ -148,9 +169,15 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* TODO: HT capabilities */
 	/* TODO: flags? drv_flags? */
 	params.flags |= WLAN_STA_WMM;
+	/* XXX: hardcode open mesh for now */
+	params.flags |= WLAN_STA_AUTH;
+	params.flags |= WLAN_STA_AUTHORIZED;
 	//params.qosinfo = sta->qosinfo;
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(addr), ret);
+
+	/* XXX: no peering frame tx/rx yet, so just force ESTAB for now */
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 	return;
 }
