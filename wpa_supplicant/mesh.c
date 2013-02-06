@@ -22,6 +22,10 @@
 #include "mesh_mpm.h"
 #include "notify.h"
 
+#include "ap/hostapd.h"
+#include "ap/ieee802_11.h"
+
+
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
@@ -32,10 +36,16 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 
 void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh)
 {
+	int i;
 	if (!ifmsh)
 		return;
 
 	os_free(ifmsh->ies);
+	if (ifmsh->bss) {
+		for (i=0; i < ifmsh->num_bss; i++)
+			os_free(ifmsh->bss[i]);
+		os_free(ifmsh->bss);
+	}
 	os_free(ifmsh->bss);
 	os_free(ifmsh);
 	return;
@@ -45,6 +55,7 @@ static int
 wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid)
 {
+	int i;
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
 		return 0;
@@ -64,19 +75,25 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	wpa_s->ifmsh->ies[1] = 0;
 	wpa_s->ifmsh->ie_len = 2;
 
-	wpa_s->ifmsh->bss = os_zalloc(sizeof *wpa_s->ifmsh->bss);
+	wpa_s->ifmsh->num_bss = 1;
+	wpa_s->ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
+				      sizeof(struct hostapd_data *));
 	if (!wpa_s->ifmsh->bss)
 		goto out_free;
-	wpa_s->ifmsh->bss->max_num_sta = 10;
 
+	/* FIXME - various uninitialized ptrs here. */
+	for (i = 0; i < wpa_s->ifmsh->num_bss; i++) {
+		wpa_s->ifmsh->bss[i] = os_zalloc(
+			sizeof(struct hostapd_data));
+		if (!wpa_s->ifmsh->bss[i])
+			goto out_free;
+	}
+
+	wpa_s->ifmsh->bss[0]->max_num_sta = 10;
 
 	return 0;
 out_free:
-	if (wpa_s->ifmsh) {
-		os_free(wpa_s->ifmsh->ies);
-		os_free(wpa_s->ifmsh->bss);
-		os_free(wpa_s->ifmsh);
-	}
+	wpa_supplicant_mesh_deinit(wpa_s);
 	return -ENOMEM;
 }
 

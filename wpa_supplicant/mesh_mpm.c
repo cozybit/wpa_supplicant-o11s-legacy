@@ -19,6 +19,7 @@
 #include "mesh_mpm.h"
 #include "notify.h"
 #include "ap/sta_info.h"
+#include "ap/hostapd.h"
 
 /* XXX: lifted from src/ap/ieee802_11.c */
 static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
@@ -49,7 +50,7 @@ static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
 
 /* TODO: teardown functions for these */
 static struct sta_info *
-mesh_get_sta(struct meshd_data *data, const u8 *sta)
+mesh_get_sta(struct hostapd_data *data, const u8 *sta)
 {
 	struct sta_info *s;
 
@@ -60,14 +61,14 @@ mesh_get_sta(struct meshd_data *data, const u8 *sta)
 }
 
 static void
-mesh_sta_hash_add(struct meshd_data *data, struct sta_info *sta)
+mesh_sta_hash_add(struct hostapd_data *data, struct sta_info *sta)
 {
 	sta->hnext = data->sta_hash[STA_HASH(sta->addr)];
 	data->sta_hash[STA_HASH(sta->addr)] = sta;
 }
 
 static struct sta_info *
-mesh_sta_add(struct meshd_data *data, const u8 *addr)
+mesh_sta_add(struct hostapd_data *data, const u8 *addr)
 {
 	struct sta_info *sta;
 
@@ -107,7 +108,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 {
 	struct hostapd_sta_add_params params;
 	/* struct wmm_information_element *wmm; */
-	struct meshd_data *data = wpa_s->ifmsh->bss;
+	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
 	struct sta_info *sta = mesh_sta_add(data, addr);
 
 	int ret = 0;

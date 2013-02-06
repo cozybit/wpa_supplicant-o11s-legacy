@@ -188,6 +188,9 @@ struct hostapd_data {
 #ifdef CONFIG_INTERWORKING
 	size_t gas_frag_limit;
 #endif /* CONFIG_INTERWORKING */
+#ifdef CONFIG_MESH
+	int max_num_sta;
+#endif
 
 #ifdef CONFIG_SQLITE
 	struct hostapd_eap_user tmp_eap_user;
