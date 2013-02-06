@@ -751,6 +751,12 @@ struct wpa_driver_ap_params {
 	int disable_dgaf;
 };
 
+struct wpa_driver_mesh_bss_params {
+#define WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS	0x00000001
+	/* TODO: others */
+	unsigned int flags;
+};
+
 struct wpa_driver_mesh_join_params {
 	const u8 *meshid;
 	int meshid_len;
@@ -759,7 +765,7 @@ struct wpa_driver_mesh_join_params {
 	char *ies;
 	int ie_len;
 	int freq;
-// XXX: later struct mesh_conf *conf;
+	struct wpa_driver_mesh_bss_params conf;
 #define WPA_DRIVER_MESH_FLAG_USER_MPM	0x00000001
 #define WPA_DRIVER_MESH_FLAG_DRIVER_MPM	0x00000002
 #define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000004
