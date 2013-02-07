@@ -594,7 +594,7 @@ void wpa_bss_update_scan_res(struct wpa_supplicant *wpa_s,
 	/* TODO: add option for ignoring BSSes we are not interested in
 	 * (to save memory) */
 
-	mesh = wpa_bss_get_ie(res, WLAN_EID_MESH_ID);
+	mesh = wpa_bss_get_ie((struct wpa_bss *) res, WLAN_EID_MESH_ID);
 	if (mesh)
 		ssid = mesh;
 
