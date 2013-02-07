@@ -298,7 +298,7 @@ enum wpa_ctrl_req_type {
 
 #ifdef CONFIG_MESH
 enum mesh_plink_state {
-	PLINK_LISTEN,
+	PLINK_LISTEN = 1,
 	PLINK_OPEN_SENT,
 	PLINK_OPEN_RCVD,
 	PLINK_CNF_RCVD,
