@@ -189,13 +189,12 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	buf = wpabuf_alloc(2 +      /* capability info */
 			   2 +      /* AID */
 			   2 + 8 +  /* supported rates */
-			   2 + (IEEE80211_MAX_SUPP_RATES - 8) +
+			   2 + (32 - 8) +
 			   2 + 32 + /* mesh ID */
 			   2 + 7 +  /* mesh config */
 			   2 + 26 + /* HT capabilities */
 			   2 + 22 + /* HT operation */
-			   2 + 23 + /* peering management */
-			   );
+			   2 + 23);   /* peering management */
 	if (!buf)
 		return;
 
