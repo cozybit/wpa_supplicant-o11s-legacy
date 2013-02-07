@@ -3332,16 +3332,20 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 {
 	if (bss->nl_mgmt == NULL)
-		return 0;
+		return -1;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with mesh "
 		   "handle %p", bss->nl_mgmt);
 
-	/* Request Auth frames for mesh SAE */
+	/* Auth frames for mesh SAE */
 	if (nl80211_register_frame(bss, bss->nl_mgmt,
 				   (WLAN_FC_TYPE_MGMT << 2) |
 				   (WLAN_FC_STYPE_AUTH << 4),
 				   NULL, 0) < 0)
+		goto out_err;
+
+	/* Mesh self-protected (peering) frames */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x0e", 1) < 0)
 		goto out_err;
 
 	return 0;
