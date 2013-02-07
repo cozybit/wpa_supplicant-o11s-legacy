@@ -140,11 +140,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	if (copy_supp_rates(wpa_s, sta, elems))
 		return;
 
-	/* TODO: get qosinfo from WMM element. Apparently our mesh STAs don't
-	 * include the WMM IE in their beacons, but setting the WLAN_STA_WMM
-	 * bit below is also not enough for the kernel to mark this sta as WMM.
-	 * Maybe a valid qosinfo would help?
-	 */
+	/* TODO: our beacons currently don't include this */
 	/*
 	if (!elems->wmm) {
 		wpa_msg(wpa_s, MSG_ERROR, "all mesh STAs should have a QoS IE!");
@@ -168,10 +164,10 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	params.listen_interval = 100;
 	/* TODO: HT capabilities */
 	/* TODO: flags? drv_flags? */
-	params.flags |= WLAN_STA_WMM;
-	/* XXX: hardcode open mesh for now */
-	params.flags |= WLAN_STA_AUTH;
-	params.flags |= WLAN_STA_AUTHORIZED;
+	params.flags |= WPA_STA_WMM;
+	/* XXX: hardcode open mesh for now, and nl80211 authenticates station
+	 * by default */
+	params.flags |= WPA_STA_AUTHORIZED;
 	//params.qosinfo = sta->qosinfo;
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
