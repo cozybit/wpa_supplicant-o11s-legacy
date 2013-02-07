@@ -43,6 +43,7 @@
 #include "offchannel.h"
 #include "interworking.h"
 #include "mesh.h"
+#include "mesh_mpm.h"
 
 
 #ifndef CONFIG_NO_SCAN_PROCESSING
@@ -2773,6 +2774,10 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	wpas_p2p_rx_action(wpa_s, mgmt->da, mgmt->sa, mgmt->bssid,
 			   category, payload, plen, freq);
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_MESH
+	if (wpa_s->ifmsh)
+		mesh_mpm_action_rx(wpa_s, &data->rx_action);
+#endif
 }
 
 
@@ -3119,7 +3124,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 
 #ifdef CONFIG_MESH
 			if (wpa_s->ifmsh) {
-				mesh_mgmt_rx(wpa_s, &data->rx_mgmt);
+				mesh_mpm_mgmt_rx(wpa_s, &data->rx_mgmt);
 				break;
 			}
 #endif

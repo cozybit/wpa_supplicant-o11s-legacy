@@ -5,6 +5,9 @@
 void
 wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       struct ieee802_11_elems *elems);
-
+void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
+		      struct rx_mgmt *rx_mgmt);
+void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
+			struct rx_action *rx_action);
 
 #endif /* MESH_MPM_H */

@@ -177,3 +177,79 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 	return;
 }
+
+static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
+				       struct sta_info *sta,
+				       enum plink_action_field type,
+				       unsigned short close_reason)
+{
+	struct wpabuf *buf;
+	int ret;
+
+	/* TODO figure out max size of elems here */
+	buf = wpabuf_alloc(1500);
+	if (!buf)
+		return;
+
+	wpabuf_put_u8(buf, WLAN_ACTION_SELF_PROTECTED);
+	wpabuf_put_u8(buf, type);
+
+	/* TODO add capability info & aid */
+	/* TODO IE: All the static IEs */
+	/* TODO IE: mesh config */
+        /* TODO (mesh config) IIRC all the defaults are 0. Double check */
+        /* TODO IE: Mesh Peering Management element */
+        /* TODO HT IEs */
+        /* TODO IE: Add MIC and encrypted AMPE */
+        /* TODO protect_frame() */
+
+	ret = wpa_drv_send_action(wpa_s, wpa_s->assoc_freq, 0,
+				sta->addr, wpa_s->own_addr, wpa_s->own_addr,
+				wpabuf_head(buf), wpabuf_len(buf), 0);
+	if (ret < 0)
+		wpa_msg(wpa_s, MSG_INFO, "Mesh MPM: failed to send peering frame");
+
+	wpabuf_free(buf);
+}
+
+void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
+		      struct rx_mgmt *rx_mgmt)
+{
+	/* TODO handle auth frames and such. */
+}
+
+void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
+			struct rx_action *rx_action)
+{
+	unsigned char action_field;
+	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
+	struct sta_info *sta;
+
+	if (rx_action->category != WLAN_ACTION_SELF_PROTECTED)
+		return;
+
+	/* action code, mesh id and peering mgmt */
+	if (rx_action->len < 1 + 2 + 2)
+		return;
+
+	action_field = rx_action->data[0];
+
+	/* TODO check that mesh peering, meshid, meshconfig IEs are there.. */
+	/* TODO parse IEs */
+	/* TODO extract plid/llid from peering IE */
+	/* TODO check rateset */
+
+	sta = mesh_get_sta(hapd, rx_action->sa);
+	if (!sta)
+		return;
+	/* TODO check peer is sae_accepted */
+	/* TODO init ampe state for sta */
+	/* TODO copy sup rates */
+	/* TODO check frame protection */
+
+	if (sta->plink_state == PLINK_BLOCKED)
+		return;
+
+	/* TODO state machine */
+}
+
