@@ -5919,8 +5919,9 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 	NLA_PUT(msg, NL80211_ATTR_STA_FLAGS2, sizeof(upd), &upd);
 
 #ifdef CONFIG_MESH
-	NLA_PUT_U8(msg, NL80211_ATTR_STA_PLINK_STATE,
-			sta_plink_state_nl80211(params->plink_state));
+	if (params->plink_state)
+		NLA_PUT_U8(msg, NL80211_ATTR_STA_PLINK_STATE,
+				sta_plink_state_nl80211(params->plink_state));
 #endif /* CONFIG_MESH */
 
 	if (params->flags & WPA_STA_WMM) {
