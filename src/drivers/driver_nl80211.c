@@ -7147,7 +7147,7 @@ static int wpa_driver_nl80211_join_mesh(
 
 	if (params->ies) {
 		wpa_hexdump(MSG_DEBUG, "  * IEs",
-			    params->ies, params->ie_len);
+			    (unsigned char *) params->ies, params->ie_len);
 		NLA_PUT(msg, NL80211_MESH_SETUP_IE, params->ie_len,
 			params->ies);
 	}
