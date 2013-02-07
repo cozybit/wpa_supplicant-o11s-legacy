@@ -3344,8 +3344,14 @@ static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 				   NULL, 0) < 0)
 		goto out_err;
 
-	/* Mesh self-protected (peering) frames */
-	if (nl80211_register_action_frame(bss, (u8 *) "\x0e", 1) < 0)
+	/* Mesh peering open */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x01", 2) < 0)
+		goto out_err;
+	/* Mesh peering confirm */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x02", 2) < 0)
+		goto out_err;
+	/* Mesh peering close */
+	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x03", 2) < 0)
 		goto out_err;
 
 	return 0;
