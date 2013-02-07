@@ -1687,9 +1687,11 @@ static void wpas_start_assoc_cb(struct wpa_radio_work *work, int deinit)
 		params.fixed_bssid = 1;
 	}
 
-	if (ssid->mode == WPAS_MODE_IBSS && ssid->frequency > 0 &&
-	    params.freq == 0)
-		params.freq = ssid->frequency; /* Initial channel for IBSS */
+	/* Initial frequency for IBSS/mesh */
+	if ((ssid->mode == WPAS_MODE_IBSS || ssid->mode == WPAS_MODE_MESH) &&
+	    ssid->frequency > 0 && params.freq == 0)
+		params.freq = ssid->frequency;
+
 	params.wpa_ie = wpa_ie;
 	params.wpa_ie_len = wpa_ie_len;
 	params.pairwise_suite = cipher_pairwise;
