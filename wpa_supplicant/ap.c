@@ -41,7 +41,7 @@ static void wpas_wps_ap_pin_timeout(void *eloop_data, void *user_ctx);
 #endif /* CONFIG_WPS */
 
 
-static int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
+int wpa_supplicant_conf_ap(struct wpa_supplicant *wpa_s,
 				  struct wpa_ssid *ssid,
 				  struct hostapd_config *conf)
 {

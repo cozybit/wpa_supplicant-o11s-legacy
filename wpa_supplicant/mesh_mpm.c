@@ -20,6 +20,7 @@
 #include "notify.h"
 #include "ap/sta_info.h"
 #include "ap/hostapd.h"
+#include "ap/ieee802_11.h"
 
 /* XXX: lifted from src/ap/ieee802_11.c */
 static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
@@ -222,7 +223,13 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 		      struct rx_mgmt *rx_mgmt)
 {
-	/* TODO handle auth frames and such. */
+	/* cf. ap_mgmt_rx */
+	struct hostapd_frame_info fi;
+	os_memset(&fi, 0, sizeof(fi));
+	fi.datarate = rx_mgmt->datarate;
+	fi.ssi_signal = rx_mgmt->ssi_signal;
+	ieee802_11_mgmt(wpa_s->ifmsh->bss[0], rx_mgmt->frame,
+			rx_mgmt->frame_len, &fi);
 }
 
 void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,

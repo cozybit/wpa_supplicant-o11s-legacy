@@ -355,7 +355,8 @@ static int is_ap_interface(enum nl80211_iftype nlmode)
 static int is_sta_interface(enum nl80211_iftype nlmode)
 {
 	return (nlmode == NL80211_IFTYPE_STATION ||
-		nlmode == NL80211_IFTYPE_P2P_CLIENT);
+		nlmode == NL80211_IFTYPE_P2P_CLIENT ||
+		nlmode == NL80211_IFTYPE_MESH_POINT);
 }
 
 

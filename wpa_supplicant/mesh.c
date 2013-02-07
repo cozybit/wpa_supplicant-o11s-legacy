@@ -57,7 +57,9 @@ static int
 wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid)
 {
-	int i;
+	struct hostapd_data *bss;
+	struct hostapd_config *conf;
+
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
 		return 0;
@@ -84,13 +86,25 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 
 	/* FIXME - various uninitialized ptrs here. */
-	for (i = 0; i < wpa_s->ifmsh->num_bss; i++) {
-		wpa_s->ifmsh->bss[i] = os_zalloc(
-			sizeof(struct hostapd_data));
-		if (!wpa_s->ifmsh->bss[i])
-			goto out_free;
-	}
+	wpa_s->ifmsh->bss[0] = bss = os_zalloc(sizeof(struct hostapd_data));
+	if (!bss)
+		goto out_free;
 
+	os_memcpy(bss->own_addr, wpa_s->own_addr, ETH_ALEN);
+	bss->driver = wpa_s->driver;
+	bss->drv_priv = wpa_s->drv_priv;
+	wpa_s->assoc_freq = ssid->frequency;
+
+	/* setup an AP config for auth processing */
+	conf = hostapd_config_defaults();
+	if (!conf)
+		goto out_free;
+
+	bss->conf = conf->bss;
+	if (wpa_supplicant_conf_ap(wpa_s, ssid, conf)) {
+		wpa_printf(MSG_ERROR, "Failed to create AP configuration");
+		goto out_free;
+	}
 	wpa_s->ifmsh->bss[0]->max_num_sta = 10;
 
 	return 0;
