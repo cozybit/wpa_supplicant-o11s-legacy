@@ -328,6 +328,13 @@ enum mesh_plink_state {
 	PLINK_HOLDING,
 	PLINK_BLOCKED,
 };
+
+enum plink_action_field {
+	PLINK_OPEN = 1,
+	PLINK_CONFIRM,
+	PLINK_CLOSE
+};
+
 #endif /* CONFIG_MESH */
 
 #endif /* DEFS_H */

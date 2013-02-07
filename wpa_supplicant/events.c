@@ -43,6 +43,7 @@
 #include "offchannel.h"
 #include "interworking.h"
 #include "mesh.h"
+#include "mesh_mpm.h"
 
 
 static int wpas_temp_disabled(struct wpa_supplicant *wpa_s,
@@ -2632,7 +2633,7 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_MESH
 			if (wpa_s->ifmsh) {
-				mesh_mgmt_rx(wpa_s, &data->rx_mgmt);
+				mesh_mpm_mgmt_rx(wpa_s, &data->rx_mgmt);
 				break;
 			}
 #endif
@@ -2712,6 +2713,10 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				   data->rx_action.data,
 				   data->rx_action.len, data->rx_action.freq);
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_MESH
+		if (wpa_s->ifmsh)
+			mesh_mpm_action_rx(wpa_s, &data->rx_action);
+#endif
 		break;
 	case EVENT_RX_PROBE_REQ:
 		if (data->rx_probe_req.sa == NULL ||
