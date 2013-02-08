@@ -21,6 +21,24 @@
 #include "ap/sta_info.h"
 #include "ap/hostapd.h"
 
+enum plink_event {
+        PLINK_UNDEFINED,
+        OPN_ACPT,
+        OPN_RJCT,
+        OPN_IGNR,
+        CNF_ACPT,
+        CNF_RJCT,
+        CNF_IGNR,
+        CLS_ACPT,
+        CLS_IGNR
+};
+
+static int plink_free_count()
+{
+	/* TODO */
+	return 99;
+}
+
 /* XXX: lifted from src/ap/ieee802_11.c */
 static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
 			   struct sta_info *sta,
@@ -225,12 +243,202 @@ void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 	/* TODO handle auth frames and such. */
 }
 
+static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
+				 struct sta_info *sta)
+{
+	sta->plink_state = PLINK_LISTEN;
+	/*
+	sta->my_lid = sta->peer_lid = sta->reason = 0;
+	sta->retries = 0;
+	*/
+}
+
+static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
+			 enum plink_event next_state)
+{
+	unsigned short reason = 0;
+
+	switch (sta->plink_state) {
+	case PLINK_LISTEN:
+		switch (next_state) {
+		case CLS_ACPT:
+			mesh_mpm_fsm_restart(wpa_s, sta);
+			break;
+		case OPN_ACPT:
+			/* TODO
+			sta->timeout = aconf->retry_timeout_ms;
+			sta->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, sta);
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case PLINK_OPEN_SENT:
+		switch (next_state) {
+		case OPN_RJCT:
+		case CNF_RJCT:
+			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+		case CLS_ACPT:
+			sta->plink_state = PLINK_HOLDING;
+			/* TODO
+			if (!reason)
+				reason = htole16(MESH_CLOSE_RCVD);
+			sta->reason = reason;
+			sta->timeout = aconf->holding_timeout_ms;
+			sta->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+			break;
+		case OPN_ACPT:
+			/* retry timer is left untouched */
+			sta->plink_state = PLINK_OPEN_RCVD;
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			break;
+		case CNF_ACPT:
+			sta->plink_state = PLINK_CNF_RCVD;
+			/* TODO
+			cand->timeout = aconf->confirm_timeout_ms;
+			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
+			*/
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case PLINK_OPEN_RCVD:
+		switch (next_state) {
+		case OPN_RJCT:
+		case CNF_RJCT:
+			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+		case CLS_ACPT:
+			sta->plink_state = PLINK_HOLDING;
+			/* TODO
+			if (!reason)
+				reason = htole16(MESH_CLOSE_RCVD);
+			sta->reason = reason;
+			sta->timeout = aconf->holding_timeout_ms;
+			sta->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+			break;
+		case OPN_ACPT:
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			break;
+		case CNF_ACPT:
+			sta->plink_state = PLINK_ESTAB;
+			/* TODO
+			derive_mtk(cand);
+			estab_peer_link(cand->peer_mac,
+				cand->mtk, sizeof(cand->mtk),
+				cand->mgtk, sizeof(cand->mgtk),
+				cand->mgtk_expiration,
+				cand->sup_rates,
+				cand->sup_rates_len,
+				cand->cookie);
+			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
+			*/
+			wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
+				MACSTR " established\n", MAC2STR(sta->addr));
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case PLINK_CNF_RCVD:
+		switch (next_state) {
+		case OPN_RJCT:
+		case CNF_RJCT:
+			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+		case CLS_ACPT:
+			sta->plink_state = PLINK_HOLDING;
+			/* TODO
+			if (!reason)
+				reason = htole16(MESH_CLOSE_RCVD);
+			sta->reason = reason;
+			cand->timeout = aconf->holding_timeout_ms;
+			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+			break;
+		case OPN_ACPT:
+			sta->plink_state = PLINK_ESTAB;
+			/* TODO
+			estab_peer_link(cand->peer_mac,
+				cand->mtk, sizeof(cand->mtk),
+				cand->mgtk, sizeof(cand->mgtk),
+				cand->mgtk_expiration, cand->sup_rates,
+				cand->sup_rates_len, cand->cookie);
+			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
+			sae_debug(AMPE_DEBUG_FSM, "Mesh plink with "
+				MACSTR " ESTABLISHED\n", MAC2STR(cand->peer_mac));
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case PLINK_ESTAB:
+		switch (next_state) {
+		case CLS_ACPT:
+			sta->plink_state = PLINK_HOLDING;
+			/* TODO
+			reason = htole16(MESH_CLOSE_RCVD);
+			cand->reason = reason;
+			cand->timeout = aconf->holding_timeout_ms;
+			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
+			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
+			*/
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+			break;
+		case OPN_ACPT:
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			break;
+		default:
+			break;
+		}
+		break;
+	case PLINK_HOLDING:
+		switch (next_state) {
+		case CLS_ACPT:
+			mesh_mpm_fsm_restart(wpa_s, sta);
+			break;
+		case OPN_ACPT:
+		case CNF_ACPT:
+		case OPN_RJCT:
+		case CNF_RJCT:
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+			break;
+		default:
+            break;
+		}
+		break;
+	default:
+		wpa_msg(wpa_s, MSG_INFO, "Unsupported MPM transition: %d -> %d",
+			sta->plink_state, next_state);
+		break;
+	}
+/* TODO
+	if (changed)
+		meshd_set_mesh_conf(cand->conf->mesh, changed);
+*/
+}
+
 void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			struct rx_action *rx_action)
 {
 	unsigned char action_field;
 	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
 	struct sta_info *sta;
+	unsigned short plid = 0, llid = 0;
+	enum plink_event event;
 
 	if (rx_action->category != WLAN_ACTION_SELF_PROTECTED)
 		return;
@@ -257,6 +465,51 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	if (sta->plink_state == PLINK_BLOCKED)
 		return;
 
-	/* TODO state machine */
+	/* Now we will figure out the appropriate event... */
+	switch (action_field) {
+	case PLINK_OPEN:
+		if (!plink_free_count() ||
+		    (sta->peer_lid && sta->peer_lid != plid))
+			event = OPN_IGNR;
+		else {
+			sta->peer_lid = plid;
+			event = OPN_ACPT;
+		}
+		break;
+
+	case PLINK_CONFIRM:
+		if (!plink_free_count() ||
+		    (sta->my_lid != llid || sta->peer_lid != plid))
+			event = CNF_IGNR;
+		else
+			event = CNF_ACPT;
+		break;
+
+	case PLINK_CLOSE:
+		if (sta->plink_state == PLINK_ESTAB)
+			/* Do not check for llid or plid. This does not
+			 * follow the standard but since multiple plinks
+			 * per cand are not supported, it is necessary in
+			 * order to avoid a livelock when MP A sees an
+			 * establish peer link to MP B but MP B does not
+			 * see it. This can be caused by a timeout in
+			 * B's peer link establishment or B beign
+			 * restarted.
+			 */
+			event = CLS_ACPT;
+		else if (sta->peer_lid != plid)
+			event = CLS_IGNR;
+		/* TODO
+		else if (ie_len == 7 && sta->my_lid != llid)
+			event = CLS_IGNR;
+		*/
+		else
+			event = CLS_ACPT;
+		break;
+	default:
+		wpa_msg(wpa_s, MSG_ERROR, "Mesh plink: unknown frame subtype\n");
+		return;
+	}
+	mesh_mpm_fsm(wpa_s, sta, event);
 }
 

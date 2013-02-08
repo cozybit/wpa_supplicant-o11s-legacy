@@ -57,6 +57,8 @@ struct sta_info {
 
 #ifdef CONFIG_MESH
 	enum mesh_plink_state plink_state;
+	unsigned short peer_lid;
+	unsigned short my_lid;
 #endif /* CONFIG_MESH */
 
 	unsigned int nonerp_set:1;
