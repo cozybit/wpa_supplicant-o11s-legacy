@@ -21,6 +21,50 @@
 #include "ap/sta_info.h"
 #include "ap/hostapd.h"
 
+struct mesh_peer_mgmt_ie {
+	const u8 *proto_id;
+	const u8 *llid;
+	const u8 *plid;
+	const u8 *reason;
+	const u8 *pmk;
+};
+
+static int mesh_mpm_parse_peer_mgmt(struct wpa_supplicant *wpa_s,
+				    u8 action_field,
+				    const u8 *ie, size_t len,
+				    struct mesh_peer_mgmt_ie *mpm_ie)
+{
+	/* remove optional pmk at end */
+	if (len >= 16) {
+		len -= 16;
+		mpm_ie->pmk = ie + len - 16;
+	}
+
+	if ((action_field == PLINK_OPEN && len != 4) ||
+	    (action_field == PLINK_CONFIRM && len != 6) ||
+	    (action_field == PLINK_CLOSE && len != 6 && len != 8)) {
+		wpa_msg(wpa_s, MSG_DEBUG, "MPM: invalid peer mgmt ie");
+		return -1;
+	}
+
+	/* required fields */
+	mpm_ie->proto_id = ie;
+	mpm_ie->llid = ie + 2;
+	ie += 4;
+	len -= 4;
+
+	/* close reason is always present for close */
+	if (action_field == PLINK_CLOSE) {
+		mpm_ie->reason = ie + len - 2;
+		len -= 2;
+	}
+	/* plid, present for confirm, and possibly close */
+	if (len)
+		mpm_ie->plid = ie;
+
+	return 0;
+}
+
 enum plink_event {
         PLINK_UNDEFINED,
         OPN_ACPT,
@@ -437,11 +481,13 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	unsigned char action_field;
 	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
 	struct sta_info *sta;
-	unsigned short plid = 0, llid = 0;
+	u16 plid = 0, llid = 0;
 	enum plink_event event;
 	struct ieee802_11_elems elems;
+	struct mesh_peer_mgmt_ie peer_mgmt_ie;
 	const u8 *ies;
 	size_t ie_len;
+	int ret;
 
 
 	if (rx_action->category != WLAN_ACTION_SELF_PROTECTED)
@@ -467,13 +513,25 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	/* check for mesh peering, mesh id and mesh config IEs */
 	if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed)
 		return;
-	if (!elems->peer_mgmt)
+	if (!elems.peer_mgmt)
 		return;
 	if ((action_field != PLINK_CLOSE) &&
-	    (!elems->mesh_id || !elems->mesh_config))
+	    (!elems.mesh_id || !elems.mesh_config))
 		return;
 
-	/* TODO extract plid/llid from peering IE */
+	ret = mesh_mpm_parse_peer_mgmt(wpa_s, action_field,
+				       elems.peer_mgmt,
+				       elems.peer_mgmt_len,
+				       &peer_mgmt_ie);
+	if (ret)
+		return;
+
+	if (peer_mgmt_ie.plid)
+		plid = WPA_GET_LE16(peer_mgmt_ie.plid);
+
+	if (peer_mgmt_ie.llid)
+		llid = WPA_GET_LE16(peer_mgmt_ie.llid);
+
 	/* TODO check rateset */
 
 	sta = mesh_get_sta(hapd, rx_action->sa);
