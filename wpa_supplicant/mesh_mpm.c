@@ -34,6 +34,8 @@ static int mesh_mpm_parse_peer_mgmt(struct wpa_supplicant *wpa_s,
 				    const u8 *ie, size_t len,
 				    struct mesh_peer_mgmt_ie *mpm_ie)
 {
+	os_memset(mpm_ie, 0, sizeof(*mpm_ie));
+
 	/* remove optional pmk at end */
 	if (len >= 16) {
 		len -= 16;
@@ -53,7 +55,7 @@ static int mesh_mpm_parse_peer_mgmt(struct wpa_supplicant *wpa_s,
 	ie += 4;
 	len -= 4;
 
-	/* close reason is always present for close */
+	/* close reason is always present at end for close */
 	if (action_field == PLINK_CLOSE) {
 		mpm_ie->reason = ie + len - 2;
 		len -= 2;
@@ -588,11 +590,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	if (ret)
 		return;
 
+	/* the sender's llid is our plid and vice-versa */
+	plid = WPA_GET_LE16(peer_mgmt_ie.llid);
 	if (peer_mgmt_ie.plid)
-		plid = WPA_GET_LE16(peer_mgmt_ie.plid);
-
-	if (peer_mgmt_ie.llid)
-		llid = WPA_GET_LE16(peer_mgmt_ie.llid);
+		llid = WPA_GET_LE16(peer_mgmt_ie.plid);
 
 	/* TODO check rateset */
 
@@ -641,10 +642,8 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			event = CLS_ACPT;
 		else if (sta->peer_lid != plid)
 			event = CLS_IGNR;
-		/* TODO
-		else if (ie_len == 7 && sta->my_lid != llid)
+		else if (peer_mgmt_ie.plid && sta->my_lid != llid)
 			event = CLS_IGNR;
-		*/
 		else
 			event = CLS_ACPT;
 		break;
