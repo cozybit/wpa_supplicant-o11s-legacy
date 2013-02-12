@@ -36,20 +36,22 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 	return;
 }
 
-void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh)
+void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 {
 	int i;
 	if (!ifmsh)
 		return;
 
-	os_free(ifmsh->ies);
+	if (ifmsh->mconf) {
+		os_free(ifmsh->mconf);
+		if (ifmsh->mconf->ies)
+			os_free(ifmsh->mconf->ies);
+	}
 	if (ifmsh->bss) {
 		for (i=0; i < ifmsh->num_bss; i++)
 			os_free(ifmsh->bss[i]);
 		os_free(ifmsh->bss);
 	}
-	os_free(ifmsh->conf);
-	os_free(ifmsh->bss);
 	os_free(ifmsh);
 	return;
 }
@@ -74,6 +76,17 @@ mesh_config_create(struct wpa_ssid *ssid)
 	/* TODO */
 	conf->mesh_auth_id = 0;
 
+	/* TODO: only if this is RSN mesh
+	wpa_s->ifmsh->ies = os_zalloc(2);
+	if (!wpa_s->ifmsh->ies)
+		goto out_free;
+
+	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
+	wpa_s->ifmsh->ies[1] = 0;
+	wpa_s->ifmsh->ie_len = 2;
+	*/
+
+
 	return conf;
 }
 
@@ -94,16 +107,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	wpa_s->ifmsh = os_zalloc(sizeof(*wpa_s->ifmsh));
 	if (!wpa_s->ifmsh)
 		return -ENOMEM;
-
-	/* TODO: only if this is RSN mesh
-	wpa_s->ifmsh->ies = os_zalloc(2);
-	if (!wpa_s->ifmsh->ies)
-		goto out_free;
-
-	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
-	wpa_s->ifmsh->ies[1] = 0;
-	wpa_s->ifmsh->ie_len = 2;
-	*/
 
 	/* TODO: generate fixed IEs (supported rates w/ BSSBasicRateSet).
 	 * NOTE: kernel MPM expects BSSBasicRateSet to match and chooses
@@ -136,7 +139,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	mconf = mesh_config_create(ssid);
 	if (!mconf)
 		goto out_free;
-	wpa_s->ifmsh->conf = mconf;
+	wpa_s->ifmsh->mconf = mconf;
 
 	return 0;
 out_free:
@@ -197,8 +200,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	}
 
 	if (wpa_s->ifmsh) {
-		params.ies = wpa_s->ifmsh->ies;
-		params.ie_len = wpa_s->ifmsh->ie_len;
+		params.ies = wpa_s->ifmsh->mconf->ies;
+		params.ie_len = wpa_s->ifmsh->mconf->ie_len;
 	}
 
 	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",

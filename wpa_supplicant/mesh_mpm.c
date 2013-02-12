@@ -248,8 +248,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 				       u16 close_reason)
 {
 	struct wpabuf *buf;
-	struct mesh_iface *ifmsh = wpa_s->ifmsh;
-	struct mesh_conf *conf = ifmsh->conf;
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u8 ie_len, add_plid = 0;
 	int ret;
 

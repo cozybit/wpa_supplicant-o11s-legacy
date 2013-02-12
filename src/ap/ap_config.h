@@ -15,6 +15,28 @@
 #include "common/ieee802_11_common.h"
 #include "wps/wps.h"
 
+#ifdef CONFIG_MESH
+/**
+ * mesh_conf - local MBSS state and settings
+ */
+struct mesh_conf {
+	u8 meshid[32];
+	u8 meshid_len;
+	/* Active Path Selection Protocol Identifier */
+	u8 mesh_pp_id;
+	/* Active Path Selection Metric Identifier */
+	u8 mesh_pm_id;
+	/* Congestion Control Mode Identifier */
+	u8 mesh_cc_id;
+	/* Synchronization Protocol Identifier */
+	u8 mesh_sp_id;
+	/* Authentication Protocol Identifier */
+	u8 mesh_auth_id;
+	char *ies;
+	int ie_len;
+};
+#endif
+
 #define MAX_STA_COUNT 2007
 #define MAX_VLAN_ID 4094
 

@@ -23,6 +23,9 @@ struct ieee80211_ht_capabilities;
 struct full_dynamic_vlan;
 enum wps_event;
 union wps_event_data;
+#ifdef CONFIG_MESH
+struct mesh_conf;
+#endif
 
 struct hostapd_iface;
 
@@ -212,6 +215,9 @@ struct hostapd_iface {
 	void *owner;
 	char *config_fname;
 	struct hostapd_config *conf;
+#ifdef CONFIG_MESH
+	struct mesh_conf *mconf;
+#endif
 
 	size_t num_bss;
 	struct hostapd_data **bss;
