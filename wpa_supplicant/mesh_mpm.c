@@ -245,7 +245,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 				       struct sta_info *sta,
 				       enum plink_action_field type,
-				       unsigned short close_reason)
+				       u16 close_reason)
 {
 	struct wpabuf *buf;
 	struct mesh_iface *ifmsh = wpa_s->ifmsh;
@@ -355,16 +355,14 @@ static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
 {
 	sta->plink_state = PLINK_LISTEN;
-	/*
-	sta->my_lid = sta->peer_lid = sta->reason = 0;
-	sta->retries = 0;
-	*/
+	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
+	sta->mpm_retries = 0;
 }
 
 static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			 enum plink_event next_state)
 {
-	unsigned short reason = 0;
+	u16 reason = 0;
 
 	switch (sta->plink_state) {
 	case PLINK_LISTEN:
@@ -389,13 +387,12 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		switch (next_state) {
 		case OPN_RJCT:
 		case CNF_RJCT:
-			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
 			sta->plink_state = PLINK_HOLDING;
-			/* TODO
 			if (!reason)
-				reason = htole16(MESH_CLOSE_RCVD);
-			sta->reason = reason;
+				reason = WLAN_REASON_MESH_CLOSE_RCVD;
+			/* TODO
 			sta->timeout = aconf->holding_timeout_ms;
 			sta->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
 			*/
@@ -422,16 +419,16 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		switch (next_state) {
 		case OPN_RJCT:
 		case CNF_RJCT:
-			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
 			sta->plink_state = PLINK_HOLDING;
-			/* TODO
 			if (!reason)
-				reason = htole16(MESH_CLOSE_RCVD);
-			sta->reason = reason;
+				reason = WLAN_REASON_MESH_CLOSE_RCVD;
+			/* TODO
 			sta->timeout = aconf->holding_timeout_ms;
 			sta->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
 			*/
+			sta->mpm_close_reason = reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
@@ -462,16 +459,16 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		switch (next_state) {
 		case OPN_RJCT:
 		case CNF_RJCT:
-			/* TODO reason = htole16(MESH_CAPABILITY_POLICY_VIOLATION); */
+			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
 			sta->plink_state = PLINK_HOLDING;
-			/* TODO
 			if (!reason)
-				reason = htole16(MESH_CLOSE_RCVD);
-			sta->reason = reason;
+				reason = WLAN_REASON_MESH_CLOSE_RCVD;
+			/* TODO
 			cand->timeout = aconf->holding_timeout_ms;
 			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
 			*/
+			sta->mpm_close_reason = reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
@@ -497,13 +494,13 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		switch (next_state) {
 		case CLS_ACPT:
 			sta->plink_state = PLINK_HOLDING;
+			reason = WLAN_REASON_MESH_CLOSE_RCVD;
 			/* TODO
-			reason = htole16(MESH_CLOSE_RCVD);
-			cand->reason = reason;
 			cand->timeout = aconf->holding_timeout_ms;
 			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
 			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 			*/
+			sta->mpm_close_reason = reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
@@ -522,6 +519,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case CNF_ACPT:
 		case OPN_RJCT:
 		case CNF_RJCT:
+			reason = sta->mpm_close_reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		default:
