@@ -493,7 +493,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			 * order to avoid a livelock when MP A sees an
 			 * establish peer link to MP B but MP B does not
 			 * see it. This can be caused by a timeout in
-			 * B's peer link establishment or B beign
+			 * B's peer link establishment or B being
 			 * restarted.
 			 */
 			event = CLS_ACPT;
