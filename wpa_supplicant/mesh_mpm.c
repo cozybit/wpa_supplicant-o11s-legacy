@@ -166,6 +166,19 @@ mesh_sta_add(struct hostapd_data *data, const u8 *addr)
 	return sta;
 }
 
+/* generate an llid for a link and set to initial state */
+static void mesh_mpm_init_link(struct wpa_supplicant *wpa_s,
+			       struct sta_info *sta)
+{
+	u16 llid;
+
+	os_get_random((u8 *) &llid, sizeof(llid));
+
+	sta->my_lid = llid;
+	sta->peer_lid = 0;
+	sta->plink_state = PLINK_LISTEN;
+}
+
 /* configure peering state in ours and driver's station entry */
 static void
 wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
@@ -598,7 +611,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	if (!sta)
 		return;
 	/* TODO check peer is sae_accepted */
-	/* TODO init ampe state for sta */
+
+	if (!sta->my_lid)
+		mesh_mpm_init_link(wpa_s, sta);
+
 	/* TODO copy sup rates */
 	/* TODO check frame protection */
 
