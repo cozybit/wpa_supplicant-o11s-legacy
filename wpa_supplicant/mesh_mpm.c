@@ -344,6 +344,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		wpabuf_put_le16(buf, close_reason);
 	else
 		/* TODO HT IEs */
+		;
 
         /* TODO IE: Add MIC and encrypted AMPE */
         /* TODO protect_frame() */
