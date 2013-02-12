@@ -463,10 +463,16 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 		ies += 2;	/* aid */
 		ie_len -= 2;
 	}
+
+	/* check for mesh peering, mesh id and mesh config IEs */
 	if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed)
 		return;
+	if (!elems->peer_mgmt)
+		return;
+	if ((action_field != PLINK_CLOSE) &&
+	    (!elems->mesh_id || !elems->mesh_config))
+		return;
 
-	/* TODO check that mesh peering, meshid, meshconfig IEs are there.. */
 	/* TODO extract plid/llid from peering IE */
 	/* TODO check rateset */
 
