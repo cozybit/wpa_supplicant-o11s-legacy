@@ -118,11 +118,11 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	wpa_msg(wpa_s, MSG_INFO,
 		"new peer notification for " MACSTR, MAC2STR(addr));
 
-        if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed) {
-                wpa_msg(wpa_s, MSG_INFO, "Could not parse beacon from " MACSTR,
-                           MAC2STR(addr));
-                return;
-        }
+	if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed) {
+		wpa_msg(wpa_s, MSG_INFO, "Could not parse beacon from " MACSTR,
+			MAC2STR(addr));
+		return;
+	}
 
 	/* TODO: verify this peer matches MBSS before inserting! */
 	/* TODO: process in SAE, which will allocate station if authenticated. */
