@@ -439,6 +439,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	struct sta_info *sta;
 	unsigned short plid = 0, llid = 0;
 	enum plink_event event;
+	struct ieee802_11_elems elems;
+	const u8 *ies;
+	size_t ie_len;
+
 
 	if (rx_action->category != WLAN_ACTION_SELF_PROTECTED)
 		return;
@@ -449,8 +453,20 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	action_field = rx_action->data[0];
 
+	ies = rx_action->data + 1;
+	ie_len = rx_action->len - 1;
+	if (action_field == PLINK_OPEN || action_field == PLINK_CONFIRM) {
+		ies += 2;	/* capability */
+		ie_len -= 2;
+	}
+	if (action_field == PLINK_CONFIRM) {
+		ies += 2;	/* aid */
+		ie_len -= 2;
+	}
+	if (ieee802_11_parse_elems(ies, ie_len, &elems, 0) == ParseFailed)
+		return;
+
 	/* TODO check that mesh peering, meshid, meshconfig IEs are there.. */
-	/* TODO parse IEs */
 	/* TODO extract plid/llid from peering IE */
 	/* TODO check rateset */
 
