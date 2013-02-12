@@ -33,6 +33,9 @@ struct ieee802_11_elems {
 	const u8 *timeout_int;
 	const u8 *ht_capabilities;
 	const u8 *ht_operation;
+	const u8 *mesh_config;
+	const u8 *mesh_id;
+	const u8 *peer_mgmt;
 	const u8 *vht_capabilities;
 	const u8 *vht_operation;
 	const u8 *vendor_ht_cap;
@@ -67,6 +70,9 @@ struct ieee802_11_elems {
 	u8 timeout_int_len;
 	u8 ht_capabilities_len;
 	u8 ht_operation_len;
+	u8 mesh_config_len;
+	u8 mesh_id_len;
+	u8 peer_mgmt_len;
 	u8 vht_capabilities_len;
 	u8 vht_operation_len;
 	u8 vendor_ht_cap_len;
