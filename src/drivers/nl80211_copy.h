@@ -2415,6 +2415,9 @@ enum nl80211_meshconf_params {
  *	vendor specific synchronization method or disable it to use the default
  *	neighbor offset synchronization
  *
+ * @NL80211_MESH_SETUP_USERSPACE_MPM: Enable this option if userspace will
+ *	implement an MPM which handles peer allocation and state.
+ *
  * @NL80211_MESH_SETUP_ATTR_MAX: highest possible mesh setup attribute number
  *
  * @__NL80211_MESH_SETUP_ATTR_AFTER_LAST: Internal use
@@ -2427,6 +2430,7 @@ enum nl80211_mesh_setup_params {
 	NL80211_MESH_SETUP_USERSPACE_AUTH,
 	NL80211_MESH_SETUP_USERSPACE_AMPE,
 	NL80211_MESH_SETUP_ENABLE_VENDOR_SYNC,
+	NL80211_MESH_SETUP_USERSPACE_MPM,
 
 	/* keep last */
 	__NL80211_MESH_SETUP_ATTR_AFTER_LAST,
