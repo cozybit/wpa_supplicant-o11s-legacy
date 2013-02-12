@@ -48,9 +48,33 @@ void wpa_supplicant_mesh_iface_deinit(struct mesh_iface *ifmsh)
 			os_free(ifmsh->bss[i]);
 		os_free(ifmsh->bss);
 	}
+	os_free(ifmsh->conf);
 	os_free(ifmsh->bss);
 	os_free(ifmsh);
 	return;
+}
+
+static struct mesh_conf *
+mesh_config_create(struct wpa_ssid *ssid)
+{
+	struct mesh_conf *conf;
+
+	conf = os_zalloc(sizeof(struct mesh_conf));
+	if (!conf)
+		return NULL;
+
+	os_memcpy(conf->meshid, ssid->ssid, ssid->ssid_len);
+	conf->meshid_len = ssid->ssid_len;
+
+	/* defaults */
+	conf->mesh_pp_id = MESH_PATH_PROTOCOL_HWMP;
+	conf->mesh_pm_id = MESH_PATH_METRIC_AIRTIME;
+	conf->mesh_cc_id = 0;
+	conf->mesh_sp_id = MESH_SYNC_METHOD_NEIGHBOR_OFFSET;
+	/* TODO */
+	conf->mesh_auth_id = 0;
+
+	return conf;
 }
 
 static int
@@ -59,6 +83,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 {
 	struct hostapd_data *bss;
 	struct hostapd_config *conf;
+	struct mesh_conf *mconf;
 
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
@@ -79,6 +104,10 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	wpa_s->ifmsh->ies[1] = 0;
 	wpa_s->ifmsh->ie_len = 2;
 	*/
+
+	/* TODO: generate fixed IEs (supported rates w/ BSSBasicRateSet).
+	 * NOTE: kernel MPM expects BSSBasicRateSet to match and chooses
+	 * mandatory rates by default! */
 
 	wpa_s->ifmsh->num_bss = 1;
 	wpa_s->ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
@@ -103,6 +132,11 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 
 	bss->conf = conf->bss;
 	wpa_s->ifmsh->bss[0]->max_num_sta = 10;
+
+	mconf = mesh_config_create(ssid);
+	if (!mconf)
+		goto out_free;
+	wpa_s->ifmsh->conf = mconf;
 
 	return 0;
 out_free:

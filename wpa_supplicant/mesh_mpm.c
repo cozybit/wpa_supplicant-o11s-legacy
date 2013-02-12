@@ -246,6 +246,9 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 				       unsigned short close_reason)
 {
 	struct wpabuf *buf;
+	struct mesh_iface *ifmsh = wpa_s->ifmsh;
+	struct mesh_conf *conf = ifmsh->conf;
+	u8 ie_len, add_plid = 0;
 	int ret;
 
 	buf = wpabuf_alloc(2 +      /* capability info */
@@ -263,12 +266,71 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	wpabuf_put_u8(buf, WLAN_ACTION_SELF_PROTECTED);
 	wpabuf_put_u8(buf, type);
 
-	/* TODO add capability info & aid */
+	if (type != PLINK_CLOSE) {
+		/* TODO: security bit */
+		wpabuf_put_le16(buf, 0);
+		if (type == PLINK_CONFIRM)
+			/* TODO: AID? */
+			wpabuf_put_le16(buf, 0);
+	}
 	/* TODO IE: All the static IEs */
-	/* TODO IE: mesh config */
-        /* TODO (mesh config) IIRC all the defaults are 0. Double check */
-        /* TODO IE: Mesh Peering Management element */
-        /* TODO HT IEs */
+	/* hostap_eid_supp_rates */
+
+	/* IE: Mesh ID */
+	wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
+	wpabuf_put_u8(buf, conf->meshid_len);
+	wpabuf_put_data(buf, conf->meshid, conf->meshid_len);
+
+	/* XXX: kernel MPM will drop our peering frame if mesh conf or
+	 * supported rates (basic rate set) doesn't match! */
+	/* IE: mesh conf */
+	wpabuf_put_u8(buf, WLAN_EID_MESH_CONFIG);
+	wpabuf_put_u8(buf, 8);
+	wpabuf_put_u8(buf, conf->mesh_pp_id);
+	wpabuf_put_u8(buf, conf->mesh_pm_id);
+	wpabuf_put_u8(buf, conf->mesh_cc_id);
+	wpabuf_put_u8(buf, conf->mesh_sp_id);
+	wpabuf_put_u8(buf, conf->mesh_auth_id);
+	/* TODO: formation info */
+	wpabuf_put_u8(buf, 0);
+	/* always forwarding & accepting plinks for now */
+	/* TODO: PS bits */
+	wpabuf_put_u8(buf, 0x1 | 0x8);
+	wpabuf_put_u8(buf, 0);
+
+        /* IE: Mesh Peering Management element */
+	ie_len = 4;
+	switch (type) {
+	case PLINK_OPEN:
+		break;
+	case PLINK_CONFIRM:
+		ie_len += 2;
+		add_plid = 1;
+		break;
+	case PLINK_CLOSE:
+		if (sta) {
+			ie_len += 2;
+			add_plid = 1;
+		}
+		ie_len += 2; /* reason code */
+		break;
+	}
+
+	wpabuf_put_u8(buf, WLAN_EID_PEER_MGMT);
+	wpabuf_put_u8(buf, ie_len);
+	/* default peering protocol */
+	wpabuf_put_le16(buf, 0);
+	if (sta)
+		wpabuf_put_le16(buf, sta->my_lid);
+	else
+		wpabuf_put_le16(buf, 0);
+	if (add_plid)
+		wpabuf_put_le16(buf, sta->peer_lid);
+	if (type == PLINK_CLOSE)
+		wpabuf_put_le16(buf, close_reason);
+	else
+		/* TODO HT IEs */
+
         /* TODO IE: Add MIC and encrypted AMPE */
         /* TODO protect_frame() */
 
