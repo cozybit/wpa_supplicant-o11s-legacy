@@ -70,7 +70,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	if (!wpa_s->ifmsh)
 		return -ENOMEM;
 
-	/* need dummy RSN IEs so peer kernel doesn't ignore our beacons... */
+	/* TODO: only if this is RSN mesh
 	wpa_s->ifmsh->ies = os_zalloc(2);
 	if (!wpa_s->ifmsh->ies)
 		goto out_free;
@@ -78,6 +78,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
 	wpa_s->ifmsh->ies[1] = 0;
 	wpa_s->ifmsh->ie_len = 2;
+	*/
 
 	wpa_s->ifmsh->num_bss = 1;
 	wpa_s->ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
