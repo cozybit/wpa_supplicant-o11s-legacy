@@ -142,59 +142,6 @@ static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
 	return WLAN_STATUS_SUCCESS;
 }
 
-static struct sta_info *
-mesh_get_sta(struct hostapd_data *data, const u8 *sta)
-{
-	struct sta_info *s;
-
-	s = data->sta_hash[STA_HASH(sta)];
-	while (s != NULL && os_memcmp(s->addr, sta, 6) != 0)
-		s = s->hnext;
-	return s;
-}
-
-static void
-mesh_sta_hash_add(struct hostapd_data *data, struct sta_info *sta)
-{
-	sta->hnext = data->sta_hash[STA_HASH(sta->addr)];
-	data->sta_hash[STA_HASH(sta->addr)] = sta;
-}
-
-static struct sta_info *
-mesh_sta_add(struct hostapd_data *data, const u8 *addr)
-{
-	struct sta_info *sta;
-
-	sta = mesh_get_sta(data, addr);
-	if (sta)
-		return sta;
-
-	wpa_printf(MSG_DEBUG, "  New STA");
-	if (data->num_sta >= data->max_num_sta) {
-		/* FIX: might try to remove some old STAs first? */
-		wpa_printf(MSG_DEBUG, "no more room for new STAs (%d/%d)",
-			   data->num_sta, data->max_num_sta);
-		return NULL;
-	}
-
-	sta = os_zalloc(sizeof(struct sta_info));
-	if (sta == NULL) {
-		wpa_printf(MSG_ERROR, "malloc failed");
-		return NULL;
-	}
-
-	/* initialize STA info data */
-	os_memcpy(sta->addr, addr, ETH_ALEN);
-	sta->next = data->sta_list;
-	data->sta_list = sta;
-	data->num_sta++;
-	mesh_sta_hash_add(data, sta);
-	/* XXX: hmm */
-	//sta->ssid = &hapd->conf->ssid;
-
-	return sta;
-}
-
 /* generate an llid for a link and set to initial state */
 static void mesh_mpm_init_link(struct wpa_supplicant *wpa_s,
 			       struct sta_info *sta)
@@ -240,7 +187,6 @@ mesh_mpm_deinit(struct hostapd_iface *ifmsh)
 	/* TODO: notify peers we're leaving */
 	/* TODO: deregister frames and events */
 
-	/* XXX: this works, maybe we no longer need the mesh_sta_* stuff? */
 	hostapd_free_stas(data);
 }
 
@@ -251,7 +197,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	struct hostapd_sta_add_params params;
 	/* struct wmm_information_element *wmm; */
 	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
-	struct sta_info *sta = mesh_sta_add(data, addr);
+	struct sta_info *sta = ap_sta_add(data, addr);
 
 	int ret = 0;
 	if (!sta)
@@ -684,7 +630,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	/* TODO check rateset */
 
-	sta = mesh_get_sta(hapd, rx_action->sa);
+	sta = ap_get_sta(hapd, rx_action->sa);
 	if (!sta)
 		return;
 	/* TODO check peer is sae_accepted */
