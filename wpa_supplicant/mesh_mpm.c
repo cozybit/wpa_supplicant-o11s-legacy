@@ -196,6 +196,8 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	params.plink_state = state;
 	params.set = 1;
 
+	wpa_msg(wpa_s, MSG_DEBUG, "MPM set " MACSTR " into %d",
+				  MAC2STR(sta->addr), state);
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
 			MAC2STR(sta->addr), ret);
@@ -252,8 +254,6 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(addr), ret);
 
-	/* XXX: no peering frame tx/rx yet, so just force ESTAB for now */
-	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 	return;
 }
 
@@ -374,7 +374,7 @@ void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
 {
-	sta->plink_state = PLINK_LISTEN;
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_LISTEN);
 	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
 	sta->mpm_retries = 0;
 }
@@ -409,7 +409,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
-			sta->plink_state = PLINK_HOLDING;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
 			/* TODO
@@ -420,11 +420,11 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case OPN_ACPT:
 			/* retry timer is left untouched */
-			sta->plink_state = PLINK_OPEN_RCVD;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_RCVD);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 			break;
 		case CNF_ACPT:
-			sta->plink_state = PLINK_CNF_RCVD;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_CNF_RCVD);
 			/* TODO
 			cand->timeout = aconf->confirm_timeout_ms;
 			cand->t2 = srv_add_timeout(srvctx, SRV_MSEC(cand->timeout), plink_timer, cand);
@@ -441,7 +441,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
-			sta->plink_state = PLINK_HOLDING;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
 			/* TODO
@@ -455,7 +455,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 			break;
 		case CNF_ACPT:
-			sta->plink_state = PLINK_ESTAB;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 			/* TODO
 			derive_mtk(cand);
 			estab_peer_link(cand->peer_mac,
@@ -481,7 +481,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
 		case CLS_ACPT:
-			sta->plink_state = PLINK_HOLDING;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
 			/* TODO
@@ -492,7 +492,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
-			sta->plink_state = PLINK_ESTAB;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 			/* TODO
 			estab_peer_link(cand->peer_mac,
 				cand->mtk, sizeof(cand->mtk),
@@ -513,7 +513,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	case PLINK_ESTAB:
 		switch (next_state) {
 		case CLS_ACPT:
-			sta->plink_state = PLINK_HOLDING;
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			reason = WLAN_REASON_MESH_CLOSE_RCVD;
 			/* TODO
 			cand->timeout = aconf->holding_timeout_ms;
