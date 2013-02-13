@@ -462,6 +462,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
 			break;
 		default:
 			break;
