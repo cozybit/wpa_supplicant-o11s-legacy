@@ -82,6 +82,33 @@ enum plink_event {
         CLS_IGNR
 };
 
+static const char *mplstate[] = {
+    [PLINK_LISTEN] = "LISTEN",
+    [PLINK_OPEN_SENT] = "OPEN_SENT",
+    [PLINK_OPEN_RCVD] = "OPEN_RCVD",
+    [PLINK_CNF_RCVD] = "CNF_RCVD",
+    [PLINK_ESTAB] = "ESTAB",
+    [PLINK_HOLDING] = "HOLDING",
+    [PLINK_BLOCKED] = "BLOCKED"
+};
+
+static const char *mplevent[] = {
+        [PLINK_UNDEFINED] = "UNDEFINED",
+        [OPN_ACPT] = "OPN_ACPT",
+        [OPN_RJCT] = "OPN_RJCT",
+        [OPN_IGNR] = "OPN_IGNR",
+        [CNF_ACPT] = "CNF_ACPT",
+        [CNF_RJCT] = "CNF_RJCT",
+        [CNF_IGNR] = "CNF_IGNR",
+        [CLS_ACPT] = "CLS_ACPT",
+        [CLS_IGNR] = "CLS_IGNR"
+};
+
+#define mpl_dbg(wpa_s, sta, event) \
+	wpa_msg(wpa_s, MSG_DEBUG, "MPM " MACSTR " state %s event %s",\
+		       MAC2STR(sta->addr), mplstate[sta->plink_state],\
+		       mplevent[event]);
+
 static int plink_free_count()
 {
 	/* TODO */
@@ -423,6 +450,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 {
 	u16 reason = 0;
 
+	mpl_dbg(wpa_s, sta, next_state);
 	switch (sta->plink_state) {
 	case PLINK_LISTEN:
 		switch (next_state) {
