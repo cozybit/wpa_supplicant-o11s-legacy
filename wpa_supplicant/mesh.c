@@ -47,12 +47,10 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 		if (ifmsh->mconf->ies)
 			os_free(ifmsh->mconf->ies);
 	}
-	if (ifmsh->bss) {
-		for (i=0; i < ifmsh->num_bss; i++)
-			os_free(ifmsh->bss[i]);
-		os_free(ifmsh->bss);
-	}
-	os_free(ifmsh);
+
+	mesh_mpm_deinit(ifmsh);
+	/* take care of shared data */
+	hostapd_interface_free(ifmsh);
 	return;
 }
 

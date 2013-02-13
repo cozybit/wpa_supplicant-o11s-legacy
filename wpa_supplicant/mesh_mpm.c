@@ -142,7 +142,6 @@ static u16 copy_supp_rates(struct wpa_supplicant *wpa_s,
 	return WLAN_STATUS_SUCCESS;
 }
 
-/* TODO: teardown functions for these */
 static struct sta_info *
 mesh_get_sta(struct hostapd_data *data, const u8 *sta)
 {
@@ -233,6 +232,19 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 }
 
 void
+mesh_mpm_deinit(struct hostapd_iface *ifmsh)
+{
+	struct hostapd_data *data = ifmsh->bss[0];
+	int i;
+
+	/* TODO: notify peers we're leaving */
+	/* TODO: deregister frames and events */
+
+	/* XXX: this works, maybe we no longer need the mesh_sta_* stuff? */
+	hostapd_free_stas(data);
+}
+
+void
 wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       struct ieee802_11_elems *elems)
 {
@@ -267,9 +279,8 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	params.supp_rates_len = sta->supported_rates_len;
 	params.addr = addr;
 	params.plink_state = sta->plink_state;
-	/* llid actually */
-	params.aid = 1;
 	/* not used for mesh */
+	params.aid = 1;
 	params.listen_interval = 100;
 	/* TODO: HT capabilities */
 	/* TODO: flags? drv_flags? */

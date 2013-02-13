@@ -9,5 +9,6 @@ void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 		      struct rx_mgmt *rx_mgmt);
 void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			struct rx_action *rx_action);
+void mesh_mpm_deinit(struct hostapd_iface *ifmsh);
 
 #endif /* MESH_MPM_H */
