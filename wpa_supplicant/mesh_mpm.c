@@ -24,6 +24,9 @@
 #include "ap/ieee802_11.h"
 
 
+static void
+mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta);
+
 struct mesh_peer_mgmt_ie {
 	const u8 *proto_id;
 	const u8 *llid;
@@ -217,7 +220,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	sta->qosinfo = wmm->qos_info;
 	*/
 
-	sta->plink_state = PLINK_LISTEN;
+	mesh_mpm_init_link(wpa_s, sta);
 
 	/* insert into driver */
 	os_memset(&params, 0, sizeof(params));
@@ -239,7 +242,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(addr), ret);
 
-	return;
+	mesh_mpm_plink_open(wpa_s, sta);
 }
 
 static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
@@ -402,6 +405,17 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 	}
 }
 
+/* initiate peering with station */
+static void
+mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
+{
+	/* TODO retry timeout */
+	eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
+	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
+}
+
 static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			 enum plink_event next_state)
 {
@@ -415,11 +429,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_fsm_restart(wpa_s, sta);
 			break;
 		case OPN_ACPT:
-			/* TODO retry timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
-			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
-			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
-			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
+			mesh_mpm_plink_open(wpa_s, sta);
 			break;
 		default:
 			break;
