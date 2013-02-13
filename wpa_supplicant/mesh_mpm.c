@@ -20,6 +20,8 @@
 #include "notify.h"
 #include "ap/sta_info.h"
 #include "ap/hostapd.h"
+#include "ap/ieee802_11.h"
+
 
 struct mesh_peer_mgmt_ie {
 	const u8 *proto_id;
@@ -261,7 +263,11 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 				       u16 close_reason)
 {
 	struct wpabuf *buf;
-	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
+	struct hostapd_iface *ifmsh = wpa_s->ifmsh;
+	struct hostapd_data *bss = ifmsh->bss[0];
+	struct mesh_conf *conf = ifmsh->mconf;
+	u8 supp_rates[2 + 2 + 32];
+	u8 *pos;
 	u8 ie_len, add_plid = 0;
 	int ret;
 
@@ -287,16 +293,17 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 			/* TODO: AID? */
 			wpabuf_put_le16(buf, 0);
 	}
-	/* TODO IE: All the static IEs */
-	/* hostap_eid_supp_rates */
+
+	/* IE: supp + ext. supp rates */
+	pos = hostapd_eid_supp_rates(bss, supp_rates);
+	pos = hostapd_eid_ext_supp_rates(bss, pos);
+	wpabuf_put_data(buf, supp_rates, pos - supp_rates);
 
 	/* IE: Mesh ID */
 	wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
 	wpabuf_put_u8(buf, conf->meshid_len);
 	wpabuf_put_data(buf, conf->meshid, conf->meshid_len);
 
-	/* XXX: kernel MPM will drop our peering frame if mesh conf or
-	 * supported rates (basic rate set) doesn't match! */
 	/* IE: mesh conf */
 	wpabuf_put_u8(buf, WLAN_EID_MESH_CONFIG);
 	wpabuf_put_u8(buf, 8);

@@ -94,6 +94,7 @@ static int
 wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			 struct wpa_ssid *ssid)
 {
+	struct hostapd_iface *ifmsh;
 	struct hostapd_data *bss;
 	struct hostapd_config *conf;
 	struct mesh_conf *mconf;
@@ -104,28 +105,29 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 
 	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
 	 * mesh, and init MPM in general */
-	wpa_s->ifmsh = os_zalloc(sizeof(*wpa_s->ifmsh));
-	if (!wpa_s->ifmsh)
+	wpa_s->ifmsh = ifmsh = os_zalloc(sizeof(*wpa_s->ifmsh));
+	if (!ifmsh)
 		return -ENOMEM;
 
 	/* TODO: generate fixed IEs (supported rates w/ BSSBasicRateSet).
 	 * NOTE: kernel MPM expects BSSBasicRateSet to match and chooses
 	 * mandatory rates by default! */
 
-	wpa_s->ifmsh->num_bss = 1;
-	wpa_s->ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
-				      sizeof(struct hostapd_data *));
-	if (!wpa_s->ifmsh->bss)
+	ifmsh->num_bss = 1;
+	ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
+			       sizeof(struct hostapd_data *));
+	if (!ifmsh->bss)
 		goto out_free;
 
 	/* FIXME - various uninitialized ptrs here. */
-	wpa_s->ifmsh->bss[0] = bss = os_zalloc(sizeof(struct hostapd_data));
+	ifmsh->bss[0] = bss = os_zalloc(sizeof(struct hostapd_data));
 	if (!bss)
 		goto out_free;
 
 	os_memcpy(bss->own_addr, wpa_s->own_addr, ETH_ALEN);
 	bss->driver = wpa_s->driver;
 	bss->drv_priv = wpa_s->drv_priv;
+	bss->iface = ifmsh;
 	wpa_s->assoc_freq = ssid->frequency;
 
 	/* setup an AP config for auth processing */
@@ -134,12 +136,48 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 
 	bss->conf = conf->bss;
-	wpa_s->ifmsh->bss[0]->max_num_sta = 10;
+	bss->iconf = conf;
+	ifmsh->conf = conf;
+	ifmsh->bss[0]->max_num_sta = 10;
 
 	mconf = mesh_config_create(ssid);
 	if (!mconf)
 		goto out_free;
-	wpa_s->ifmsh->mconf = mconf;
+	ifmsh->mconf = mconf;
+
+	/* need conf->hw_mode for supported rates. */
+	/* c.f. wpa_supplicant/ap.c:wpa_supplicant_conf_ap() */
+	if (ssid->frequency == 0) {
+		/* default channel 11 */
+		/* XXX: this doesn't make it to join_mesh() */
+		conf->hw_mode = HOSTAPD_MODE_IEEE80211G;
+		conf->channel = 11;
+	} else if (ssid->frequency >= 2412 && ssid->frequency <= 2472) {
+		conf->hw_mode = HOSTAPD_MODE_IEEE80211G;
+		conf->channel = (ssid->frequency - 2407) / 5;
+	} else if ((ssid->frequency >= 5180 && ssid->frequency <= 5240) ||
+		   (ssid->frequency >= 5745 && ssid->frequency <= 5825)) {
+		conf->hw_mode = HOSTAPD_MODE_IEEE80211A;
+		conf->channel = (ssid->frequency - 5000) / 5;
+	} else if (ssid->frequency >= 56160 + 2160 * 1 &&
+		   ssid->frequency <= 56160 + 2160 * 4) {
+		conf->hw_mode = HOSTAPD_MODE_IEEE80211AD;
+		conf->channel = (ssid->frequency - 56160) / 2160;
+	} else {
+		wpa_printf(MSG_ERROR, "Unsupported mesh mode frequency: %d MHz",
+			   ssid->frequency);
+		goto out_free;
+	}
+
+	/* XXX: we could use hostapd_setup_interface(), except the mesh
+	 * interface returns -EBUSY when attempting to set the frequency, so
+	 * instead duplicate the parts we want here. */
+	if (hostapd_get_hw_features(ifmsh))
+		goto out_free;
+	if (hostapd_select_hw_mode(ifmsh))
+		goto out_free;
+	if (hostapd_prepare_rates(ifmsh, ifmsh->current_mode))
+		goto out_free;
 
 	return 0;
 out_free:
