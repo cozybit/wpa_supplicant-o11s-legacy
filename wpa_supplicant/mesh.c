@@ -98,6 +98,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss;
 	struct hostapd_config *conf;
 	struct mesh_conf *mconf;
+	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
 
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
@@ -108,10 +109,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	wpa_s->ifmsh = ifmsh = os_zalloc(sizeof(*wpa_s->ifmsh));
 	if (!ifmsh)
 		return -ENOMEM;
-
-	/* TODO: generate fixed IEs (supported rates w/ BSSBasicRateSet).
-	 * NOTE: kernel MPM expects BSSBasicRateSet to match and chooses
-	 * mandatory rates by default! */
 
 	ifmsh->num_bss = 1;
 	ifmsh->bss = os_calloc(wpa_s->ifmsh->num_bss,
@@ -167,6 +164,20 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		wpa_printf(MSG_ERROR, "Unsupported mesh mode frequency: %d MHz",
 			   ssid->frequency);
 		goto out_free;
+	}
+
+	/* XXX: hack! this is so an MPM which correctly sets the ERP
+	 * mandatory rates as BSSBasicRateSet doesn't reject us. We
+	 * could add a new hw_mode HOSTAPD_MODE_IEEE80211G_ERP, but
+	 * this is way easier. This also makes our BSSBasicRateSet
+	 * advertised in beacons match the one in peering frames, sigh.
+	 * */
+	if (conf->hw_mode == HOSTAPD_MODE_IEEE80211G) {
+		conf->basic_rates = os_zalloc(sizeof(basic_rates_erp));
+		if (!conf->basic_rates)
+			goto out_free;
+		os_memcpy(conf->basic_rates,
+			  basic_rates_erp, sizeof(basic_rates_erp));
 	}
 
 	/* XXX: we could use hostapd_setup_interface(), except the mesh
