@@ -66,26 +66,38 @@ mesh_config_create(struct wpa_ssid *ssid)
 	os_memcpy(conf->meshid, ssid->ssid, ssid->ssid_len);
 	conf->meshid_len = ssid->ssid_len;
 
+	if (ssid->auth_alg & WPA_AUTH_ALG_SAE)
+		conf->security |= MESH_CONF_SEC_AUTH;
+	else
+		conf->security |= MESH_CONF_SEC_NONE;
+
 	/* defaults */
 	conf->mesh_pp_id = MESH_PATH_PROTOCOL_HWMP;
 	conf->mesh_pm_id = MESH_PATH_METRIC_AIRTIME;
 	conf->mesh_cc_id = 0;
 	conf->mesh_sp_id = MESH_SYNC_METHOD_NEIGHBOR_OFFSET;
-	/* TODO */
+	/* TODO: should be 1 for SAE, but the kernel fails to set this in its
+	 * beacon, so neither peer will get CMD_NEW_PEER_CANDIDATE since
+	 * mesh_matches_local() fails. Easy patch in
+	 * net/mac80211/mesh.c:ieee80211_start_mesh()*/
 	conf->mesh_auth_id = 0;
 
-	/* TODO: only if this is RSN mesh
-	wpa_s->ifmsh->ies = os_zalloc(2);
-	if (!wpa_s->ifmsh->ies)
-		goto out_free;
+	/* TODO: fill this in */
+	if (conf->security & MESH_CONF_SEC_AUTH) {
+		conf->ies = os_zalloc(2);
+		if (!conf->ies)
+			goto out_free;
 
-	wpa_s->ifmsh->ies[0] = WLAN_EID_RSN;
-	wpa_s->ifmsh->ies[1] = 0;
-	wpa_s->ifmsh->ie_len = 2;
-	*/
-
+		conf->ies[0] = WLAN_EID_RSN;
+		conf->ies[1] = 0;
+		conf->ie_len = 2;
+	}
 
 	return conf;
+out_free:
+	os_free (conf->ies);
+	os_free (conf);
+	return NULL;
 }
 
 static int
@@ -124,6 +136,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	bss->drv_priv = wpa_s->drv_priv;
 	bss->iface = ifmsh;
 	wpa_s->assoc_freq = ssid->frequency;
+	wpa_s->current_ssid = ssid;
 
 	/* setup an AP config for auth processing */
 	conf = hostapd_config_defaults();
@@ -240,6 +253,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 		params.conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
 	}
 
+	if (ssid->auth_alg & WPA_AUTH_ALG_SAE)
+		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
 
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
