@@ -1406,12 +1406,11 @@ int radius_msg_get_vlanid(struct radius_msg *msg)
  * @secret: RADIUS shared secret
  * @secret_len: Length of secret
  * @sent_msg: Sent RADIUS message
- * @n: Number of password attribute to return (starting with 0)
- * Returns: Pointer to n-th password (free with os_free) or %NULL
+ * Returns: pointer to password (free with os_free) or %NULL
  */
 char * radius_msg_get_tunnel_password(struct radius_msg *msg, int *keylen,
 				      const u8 *secret, size_t secret_len,
-				      struct radius_msg *sent_msg, size_t n)
+				      struct radius_msg *sent_msg)
 {
 	u8 *buf = NULL;
 	size_t buflen;
@@ -1421,7 +1420,7 @@ char * radius_msg_get_tunnel_password(struct radius_msg *msg, int *keylen,
 	size_t len[3];
 	u8 hash[16];
 	u8 *pos;
-	size_t i, j = 0;
+	size_t i;
 	struct radius_attr_hdr *attr;
 	const u8 *data;
 	size_t dlen;
@@ -1429,7 +1428,7 @@ char * radius_msg_get_tunnel_password(struct radius_msg *msg, int *keylen,
 	size_t fdlen = -1;
 	char *ret = NULL;
 
-	/* find n-th valid Tunnel-Password attribute */
+	/* find attribute with lowest tag and check it */
 	for (i = 0; i < msg->attr_used; i++) {
 		attr = radius_get_attr_hdr(msg, i);
 		if (attr == NULL ||
@@ -1442,13 +1441,11 @@ char * radius_msg_get_tunnel_password(struct radius_msg *msg, int *keylen,
 		dlen = attr->length - sizeof(*attr);
 		if (dlen <= 3 || dlen % 16 != 3)
 			continue;
-		j++;
-		if (j <= n)
+		if (fdata != NULL && fdata[0] <= data[0])
 			continue;
 
 		fdata = data;
 		fdlen = dlen;
-		break;
 	}
 	if (fdata == NULL)
 		goto out;

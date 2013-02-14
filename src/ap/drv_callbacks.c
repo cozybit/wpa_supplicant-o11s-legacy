@@ -109,15 +109,6 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
 	}
 #endif /* CONFIG_P2P */
 
-#ifdef CONFIG_HS20
-	wpabuf_free(sta->hs20_ie);
-	if (elems.hs20 && elems.hs20_len > 4) {
-		sta->hs20_ie = wpabuf_alloc_copy(elems.hs20 + 4,
-						 elems.hs20_len - 4);
-	} else
-		sta->hs20_ie = NULL;
-#endif /* CONFIG_HS20 */
-
 	if (hapd->conf->wpa) {
 		if (ie == NULL || ielen == 0) {
 #ifdef CONFIG_WPS
@@ -512,13 +503,13 @@ static void hostapd_action_rx(struct hostapd_data *hapd,
 					   action->data + 2);
 	}
 #endif /* CONFIG_IEEE80211W */
-#ifdef CONFIG_WNM
+#ifdef CONFIG_IEEE80211V
 	if (action->category == WLAN_ACTION_WNM) {
 		wpa_printf(MSG_DEBUG, "%s: WNM_ACTION length %d",
 			   __func__, (int) action->len);
 		ieee802_11_rx_wnm_action_ap(hapd, action);
 	}
-#endif /* CONFIG_WNM */
+#endif /* CONFIG_IEEE80211V */
 }
 
 
@@ -681,15 +672,12 @@ static void hostapd_event_eapol_rx(struct hostapd_data *hapd, const u8 *src,
 				   const u8 *data, size_t data_len)
 {
 	struct hostapd_iface *iface = hapd->iface;
-	struct sta_info *sta;
 	size_t j;
 
 	for (j = 0; j < iface->num_bss; j++) {
-		if ((sta = ap_get_sta(iface->bss[j], src))) {
-			if (sta->flags & WLAN_STA_ASSOC) {
-				hapd = iface->bss[j];
-				break;
-			}
+		if (ap_get_sta(iface->bss[j], src)) {
+			hapd = iface->bss[j];
+			break;
 		}
 	}
 

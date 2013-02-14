@@ -41,7 +41,7 @@ struct hostapd_channel_data {
 	/**
 	 * freq - Frequency in MHz
 	 */
-	int freq;
+	short freq;
 
 	/**
 	 * flag - Channel flags (HOSTAPD_CHAN_*)
@@ -117,7 +117,6 @@ struct hostapd_hw_modes {
 #define IEEE80211_MODE_INFRA	0
 #define IEEE80211_MODE_IBSS	1
 #define IEEE80211_MODE_AP	2
-#define IEEE80211_MODE_MESH	5
 
 #define IEEE80211_CAP_ESS	0x0001
 #define IEEE80211_CAP_IBSS	0x0002
@@ -314,9 +313,6 @@ struct wpa_driver_auth_params {
 	 * p2p - Whether this connection is a P2P group
 	 */
 	int p2p;
-
-	const u8 *sae_data;
-	size_t sae_data_len;
 
 };
 
@@ -751,28 +747,6 @@ struct wpa_driver_ap_params {
 	int disable_dgaf;
 };
 
-struct wpa_driver_mesh_bss_params {
-#define WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS	0x00000001
-	/* TODO: others */
-	unsigned int flags;
-};
-
-struct wpa_driver_mesh_join_params {
-	const u8 *meshid;
-	int meshid_len;
-	int *basic_rates;
-	int mcast_rate;
-	char *ies;
-	int ie_len;
-	int freq;
-	struct wpa_driver_mesh_bss_params conf;
-#define WPA_DRIVER_MESH_FLAG_USER_MPM	0x00000001
-#define WPA_DRIVER_MESH_FLAG_DRIVER_MPM	0x00000002
-#define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000004
-#define WPA_DRIVER_MESH_FLAG_AMPE	0x00000008
-	unsigned int flags;
-};
-
 /**
  * struct wpa_driver_capa - Driver capability information
  */
@@ -784,7 +758,6 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_CAPA_KEY_MGMT_WPA_NONE	0x00000010
 #define WPA_DRIVER_CAPA_KEY_MGMT_FT		0x00000020
 #define WPA_DRIVER_CAPA_KEY_MGMT_FT_PSK		0x00000040
-#define WPA_DRIVER_CAPA_KEY_MGMT_WAPI_PSK	0x00000080
 	unsigned int key_mgmt;
 
 #define WPA_DRIVER_CAPA_ENC_WEP40	0x00000001
@@ -861,14 +834,6 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS_INACTIVITY_TIMER		0x00800000
 /* Driver expects user space implementation of MLME in AP mode */
 #define WPA_DRIVER_FLAGS_AP_MLME			0x01000000
-/* Driver supports SAE with user space SME */
-#define WPA_DRIVER_FLAGS_SAE				0x02000000
-/* Driver makes use of OBSS scan mechanism in wpa_supplicant */
-#define WPA_DRIVER_FLAGS_OBSS_SCAN			0x04000000
-/* Driver supports mesh */
-#define WPA_DRIVER_FLAGS_MESH				0x08000000
-/* Driver supports RSN mesh with user space MPM */
-#define WPA_DRIVER_FLAGS_MESH_RSN			0x10000000
 	unsigned int flags;
 
 	int max_scan_ssids;
@@ -925,14 +890,7 @@ struct hostapd_sta_add_params {
 	size_t supp_rates_len;
 	u16 listen_interval;
 	const struct ieee80211_ht_capabilities *ht_capabilities;
-	const struct ieee80211_vht_capabilities *vht_capabilities;
 	u32 flags; /* bitmask of WPA_STA_* flags */
-	u32 flags_mask; /* unset bits in flags */
-#ifdef CONFIG_MESH
-	enum mesh_plink_state plink_state;
-	/* TODO: plink_action */
-	/* TODO: mesh power mode */
-#endif /* CONFIG_MESH */
 	int set; /* Set STA parameters instead of add */
 	u8 qosinfo;
 };
@@ -941,19 +899,10 @@ struct hostapd_freq_params {
 	int mode;
 	int freq;
 	int channel;
-	/* for HT */
 	int ht_enabled;
 	int sec_channel_offset; /* 0 = HT40 disabled, -1 = HT40 enabled,
 				 * secondary channel below primary, 1 = HT40
 				 * enabled, secondary channel above primary */
-
-	/* for VHT */
-	int vht_enabled;
-
-	/* valid for both HT and VHT, center_freq2 is non-zero
-	 * only for bandwidth 80 and an 80+80 channel */
-	int center_freq1, center_freq2;
-	int bandwidth;
 };
 
 enum wpa_driver_if_type {
@@ -991,12 +940,7 @@ enum wpa_driver_if_type {
 	 * WPA_IF_P2P_GROUP - P2P Group interface (will become either
 	 * WPA_IF_P2P_GO or WPA_IF_P2P_CLIENT, but the role is not yet known)
 	 */
-	WPA_IF_P2P_GROUP,
-
-	/**
-	 * WPA_IF_MESH - Mesh interface
-	 */
-	WPA_IF_MESH,
+	WPA_IF_P2P_GROUP
 };
 
 struct wpa_init_params {
@@ -1034,7 +978,6 @@ struct wpa_bss_params {
 #define WPA_STA_SHORT_PREAMBLE BIT(2)
 #define WPA_STA_MFP BIT(3)
 #define WPA_STA_TDLS_PEER BIT(4)
-#define WPA_STA_AUTHENTICATED BIT(5)
 
 /**
  * struct p2p_params - P2P parameters for driver-based P2P management
@@ -1250,6 +1193,17 @@ struct wpa_driver_ops {
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*deauthenticate)(void *priv, const u8 *addr, int reason_code);
+
+	/**
+	 * disassociate - Request driver to disassociate
+	 * @priv: private driver interface data
+	 * @addr: peer address (BSSID of the AP)
+	 * @reason_code: 16-bit reason code to be sent in the disassociation
+	 *	frame
+	 *
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*disassociate)(void *priv, const u8 *addr, int reason_code);
 
 	/**
 	 * associate - Request driver to associate
@@ -1941,7 +1895,7 @@ struct wpa_driver_ops {
 	 * @session_timeout: Session timeout for the station
 	 * Returns: 0 on success, -1 on failure
 	 */
-	int (*set_radius_acl_auth)(void *priv, const u8 *mac, int accepted,
+	int (*set_radius_acl_auth)(void *priv, const u8 *mac, int accepted, 
 				   u32 session_timeout);
 
 	/**
@@ -2511,7 +2465,18 @@ struct wpa_driver_ops {
 	 * DEPRECATED - use set_ap() instead
 	 */
 	int (*set_authmode)(void *priv, int authmode);
-
+#ifdef ANDROID
+	/**
+	 * driver_cmd - execute driver-specific command
+	 * @priv: private driver interface data
+	 * @cmd: command to execute
+	 * @buf: return buffer
+	 * @buf_len: buffer length
+	 *
+	 * Returns: 0 on success, -1 on failure
+	 */
+	 int (*driver_cmd)(void *priv, char *cmd, char *buf, size_t buf_len);
+#endif
 	/**
 	 * set_rekey_info - Set rekey information
 	 * @priv: Private driver interface data
@@ -2651,16 +2616,6 @@ struct wpa_driver_ops {
 	 * avoid frequency conflict in single channel concurrency.
 	 */
 	int (*switch_channel)(void *priv, unsigned int freq);
-
-	/**
-	 * join_mesh - Join a mesh network
-	 * @priv: Private driver interface data
-	 * @setup: Mesh setup parameters
-	 * @conf: Mesh configuration parameters
-	 * Returns: 0 on success, -1 on failure
-	 */
-	/* XXX: maybe just take a wpa_driver_associate_params? */
-	int (*join_mesh)(void *priv, struct wpa_driver_mesh_join_params *params);
 };
 
 
@@ -3105,12 +3060,7 @@ enum wpa_event_type {
 	 *
 	 * This event can be used to request a WNM operation to be performed.
 	 */
-	EVENT_WNM,
-
-	/**
-	 * EVENT_NEW_PEER_CANDIDATE - new (unknown) mesh peer notification
-	 */
-	EVENT_NEW_PEER_CANDIDATE,
+	EVENT_WNM
 };
 
 
@@ -3735,22 +3685,6 @@ union wpa_event_data {
 		int ht_enabled;
 		int ch_offset;
 	} ch_switch;
-
-	/**
-	 * struct mesh_peer
-	 *
-	 * @peer: peer address
-	 * @ies: beacon IEs
-	 * @ie_len: length of @ies
-	 *
-	 * Notification of new (peer doesn't exist in driver) mesh peer.
-	 */
-	struct mesh_peer {
-		u8 peer[ETH_ALEN];
-		u8 *ies;
-		int ie_len;
-	} mesh_peer;
-
 };
 
 /**

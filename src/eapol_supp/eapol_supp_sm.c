@@ -1469,7 +1469,10 @@ void eapol_sm_notify_cached(struct eapol_sm *sm)
 	if (sm == NULL)
 		return;
 	wpa_printf(MSG_DEBUG, "EAPOL: PMKSA caching was used - skip EAPOL");
-	sm->eapSuccess = TRUE;
+	sm->SUPP_PAE_state = SUPP_PAE_AUTHENTICATED;
+	sm->suppPortStatus = Authorized;
+	eapol_sm_set_port_authorized(sm);
+	sm->portValid = TRUE;
 	eap_notify_success(sm->eap);
 	eapol_sm_step(sm);
 }

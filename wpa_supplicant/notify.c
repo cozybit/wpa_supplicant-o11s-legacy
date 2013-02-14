@@ -90,9 +90,13 @@ void wpas_notify_state_changed(struct wpa_supplicant *wpa_s,
 
 #ifdef ANDROID
 	wpa_msg_ctrl(wpa_s, MSG_INFO, WPA_EVENT_STATE_CHANGE
-		     "id=%d state=%d BSSID=" MACSTR,
+		     "id=%d state=%d BSSID=" MACSTR " SSID=%s",
 		     wpa_s->current_ssid ? wpa_s->current_ssid->id : -1,
-		     new_state, MAC2STR(wpa_s->pending_bssid));
+		     new_state,
+		     MAC2STR(wpa_s->bssid),
+		     wpa_s->current_ssid && wpa_s->current_ssid->ssid ?
+		     wpa_ssid_txt(wpa_s->current_ssid->ssid,
+		     wpa_s->current_ssid->ssid_len): "");
 #endif /* ANDROID */
 }
 
@@ -323,9 +327,6 @@ void wpas_notify_bss_rsnie_changed(struct wpa_supplicant *wpa_s,
 void wpas_notify_bss_wps_changed(struct wpa_supplicant *wpa_s,
 				 unsigned int id)
 {
-#ifdef CONFIG_WPS
-	wpas_dbus_bss_signal_prop_changed(wpa_s, WPAS_DBUS_BSS_PROP_WPS, id);
-#endif /* CONFIG_WPS */
 }
 
 

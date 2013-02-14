@@ -504,12 +504,6 @@ static int wpa_config_parse_key_mgmt(const struct parse_data *data,
 		else if (os_strcmp(start, "WPS") == 0)
 			val |= WPA_KEY_MGMT_WPS;
 #endif /* CONFIG_WPS */
-#ifdef CONFIG_SAE
-		else if (os_strcmp(start, "SAE") == 0)
-			val |= WPA_KEY_MGMT_SAE;
-		else if (os_strcmp(start, "FT-SAE") == 0)
-			val |= WPA_KEY_MGMT_FT_SAE;
-#endif /* CONFIG_SAE */
 		else {
 			wpa_printf(MSG_ERROR, "Line %d: invalid key_mgmt '%s'",
 				   line, start);
@@ -629,12 +623,49 @@ static char * wpa_config_write_key_mgmt(const struct parse_data *data,
 
 static int wpa_config_parse_cipher(int line, const char *value)
 {
-	int val = wpa_parse_cipher(value);
-	if (val < 0) {
-		wpa_printf(MSG_ERROR, "Line %d: invalid cipher '%s'.",
-			   line, value);
+	int val = 0, last;
+	char *start, *end, *buf;
+
+	buf = os_strdup(value);
+	if (buf == NULL)
 		return -1;
+	start = buf;
+
+	while (*start != '\0') {
+		while (*start == ' ' || *start == '\t')
+			start++;
+		if (*start == '\0')
+			break;
+		end = start;
+		while (*end != ' ' && *end != '\t' && *end != '\0')
+			end++;
+		last = *end == '\0';
+		*end = '\0';
+		if (os_strcmp(start, "CCMP") == 0)
+			val |= WPA_CIPHER_CCMP;
+		else if (os_strcmp(start, "GCMP") == 0)
+			val |= WPA_CIPHER_GCMP;
+		else if (os_strcmp(start, "TKIP") == 0)
+			val |= WPA_CIPHER_TKIP;
+		else if (os_strcmp(start, "WEP104") == 0)
+			val |= WPA_CIPHER_WEP104;
+		else if (os_strcmp(start, "WEP40") == 0)
+			val |= WPA_CIPHER_WEP40;
+		else if (os_strcmp(start, "NONE") == 0)
+			val |= WPA_CIPHER_NONE;
+		else {
+			wpa_printf(MSG_ERROR, "Line %d: invalid cipher '%s'.",
+				   line, start);
+			os_free(buf);
+			return -1;
+		}
+
+		if (last)
+			break;
+		start = end + 1;
 	}
+	os_free(buf);
+
 	if (val == 0) {
 		wpa_printf(MSG_ERROR, "Line %d: no cipher values configured.",
 			   line);
@@ -647,13 +678,72 @@ static int wpa_config_parse_cipher(int line, const char *value)
 #ifndef NO_CONFIG_WRITE
 static char * wpa_config_write_cipher(int cipher)
 {
-	char *buf = os_zalloc(50);
+	char *buf, *pos, *end;
+	int ret;
+
+	pos = buf = os_zalloc(50);
 	if (buf == NULL)
 		return NULL;
+	end = buf + 50;
 
-	if (wpa_write_ciphers(buf, buf + 50, cipher, " ") < 0) {
-		os_free(buf);
-		return NULL;
+	if (cipher & WPA_CIPHER_CCMP) {
+		ret = os_snprintf(pos, end - pos, "%sCCMP",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+
+	if (cipher & WPA_CIPHER_GCMP) {
+		ret = os_snprintf(pos, end - pos, "%sGCMP",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+
+	if (cipher & WPA_CIPHER_TKIP) {
+		ret = os_snprintf(pos, end - pos, "%sTKIP",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+
+	if (cipher & WPA_CIPHER_WEP104) {
+		ret = os_snprintf(pos, end - pos, "%sWEP104",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+
+	if (cipher & WPA_CIPHER_WEP40) {
+		ret = os_snprintf(pos, end - pos, "%sWEP40",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
+	}
+
+	if (cipher & WPA_CIPHER_NONE) {
+		ret = os_snprintf(pos, end - pos, "%sNONE",
+				  pos == buf ? "" : " ");
+		if (ret < 0 || ret >= end - pos) {
+			end[-1] = '\0';
+			return buf;
+		}
+		pos += ret;
 	}
 
 	return buf;
@@ -669,7 +759,8 @@ static int wpa_config_parse_pairwise(const struct parse_data *data,
 	val = wpa_config_parse_cipher(line, value);
 	if (val == -1)
 		return -1;
-	if (val & ~WPA_ALLOWED_PAIRWISE_CIPHERS) {
+	if (val & ~(WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_TKIP |
+		    WPA_CIPHER_NONE)) {
 		wpa_printf(MSG_ERROR, "Line %d: not allowed pairwise cipher "
 			   "(0x%x).", line, val);
 		return -1;
@@ -698,7 +789,8 @@ static int wpa_config_parse_group(const struct parse_data *data,
 	val = wpa_config_parse_cipher(line, value);
 	if (val == -1)
 		return -1;
-	if (val & ~WPA_ALLOWED_GROUP_CIPHERS) {
+	if (val & ~(WPA_CIPHER_CCMP | WPA_CIPHER_GCMP | WPA_CIPHER_TKIP |
+		    WPA_CIPHER_WEP104 | WPA_CIPHER_WEP40)) {
 		wpa_printf(MSG_ERROR, "Line %d: not allowed group cipher "
 			   "(0x%x).", line, val);
 		return -1;
@@ -818,7 +910,9 @@ static char * wpa_config_write_auth_alg(const struct parse_data *data,
 #endif /* NO_CONFIG_WRITE */
 
 
-static int * wpa_config_parse_int_array(const char *value)
+static int * wpa_config_parse_freqs(const struct parse_data *data,
+				    struct wpa_ssid *ssid, int line,
+				    const char *value)
 {
 	int *freqs;
 	size_t used, len;
@@ -865,7 +959,7 @@ static int wpa_config_parse_scan_freq(const struct parse_data *data,
 {
 	int *freqs;
 
-	freqs = wpa_config_parse_int_array(value);
+	freqs = wpa_config_parse_freqs(data, ssid, line, value);
 	if (freqs == NULL)
 		return -1;
 	os_free(ssid->scan_freq);
@@ -881,7 +975,7 @@ static int wpa_config_parse_freq_list(const struct parse_data *data,
 {
 	int *freqs;
 
-	freqs = wpa_config_parse_int_array(value);
+	freqs = wpa_config_parse_freqs(data, ssid, line, value);
 	if (freqs == NULL)
 		return -1;
 	os_free(ssid->freq_list);
@@ -1518,7 +1612,7 @@ static const struct parse_data ssid_fields[] = {
 	{ STRe(pac_file) },
 	{ INTe(fragment_size) },
 #endif /* IEEE8021X_EAPOL */
-	{ INT_RANGE(mode, 0, 5) },
+	{ INT_RANGE(mode, 0, 4) },
 	{ INT_RANGE(proactive_key_caching, 0, 1) },
 	{ INT_RANGE(disabled, 0, 2) },
 	{ STR(id_str) },
@@ -1527,7 +1621,7 @@ static const struct parse_data ssid_fields[] = {
 #endif /* CONFIG_IEEE80211W */
 	{ INT_RANGE(peerkey, 0, 1) },
 	{ INT_RANGE(mixed_cell, 0, 1) },
-	{ INT_RANGE(frequency, 0, 65000) },
+	{ INT_RANGE(frequency, 0, 10000) },
 	{ INT(wpa_ptk_rekey) },
 	{ STR(bgscan) },
 	{ INT_RANGE(ignore_broadcast_ssid, 0, 2) },
@@ -1537,7 +1631,6 @@ static const struct parse_data ssid_fields[] = {
 #ifdef CONFIG_HT_OVERRIDES
 	{ INT_RANGE(disable_ht, 0, 1) },
 	{ INT_RANGE(disable_ht40, -1, 1) },
-	{ INT_RANGE(disable_sgi, 0, 1) },
 	{ INT_RANGE(disable_max_amsdu, -1, 1) },
 	{ INT_RANGE(ampdu_factor, -1, 3) },
 	{ INT_RANGE(ampdu_density, -1, 7) },
@@ -1736,7 +1829,6 @@ void wpa_config_free_cred(struct wpa_cred *cred)
 	os_free(cred->eap_method);
 	os_free(cred->phase1);
 	os_free(cred->phase2);
-	os_free(cred->excluded_ssid);
 	os_free(cred);
 }
 
@@ -1803,7 +1895,6 @@ void wpa_config_free(struct wpa_config *config)
 	wpabuf_free(config->wps_nfc_dh_privkey);
 	wpabuf_free(config->wps_nfc_dev_pw);
 	os_free(config->ext_password_backend);
-	os_free(config->sae_groups);
 	os_free(config);
 }
 
@@ -1940,15 +2031,10 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 #ifdef CONFIG_HT_OVERRIDES
 	ssid->disable_ht = DEFAULT_DISABLE_HT;
 	ssid->disable_ht40 = DEFAULT_DISABLE_HT40;
-	ssid->disable_sgi = DEFAULT_DISABLE_SGI;
 	ssid->disable_max_amsdu = DEFAULT_DISABLE_MAX_AMSDU;
 	ssid->ampdu_factor = DEFAULT_AMPDU_FACTOR;
 	ssid->ampdu_density = DEFAULT_AMPDU_DENSITY;
 #endif /* CONFIG_HT_OVERRIDES */
-	ssid->proactive_key_caching = -1;
-#ifdef CONFIG_IEEE80211W
-	ssid->ieee80211w = MGMT_FRAME_PROTECTION_DEFAULT;
-#endif /* CONFIG_IEEE80211W */
 }
 
 
@@ -2315,34 +2401,6 @@ int wpa_config_set_cred(struct wpa_cred *cred, const char *var,
 		return 0;
 	}
 
-	if (os_strcmp(var, "excluded_ssid") == 0) {
-		struct excluded_ssid *e;
-
-		if (len > MAX_SSID_LEN) {
-			wpa_printf(MSG_ERROR, "Line %d: invalid "
-				   "excluded_ssid length %d", line, (int) len);
-			os_free(val);
-			return -1;
-		}
-
-		e = os_realloc_array(cred->excluded_ssid,
-				     cred->num_excluded_ssid + 1,
-				     sizeof(struct excluded_ssid));
-		if (e == NULL) {
-			os_free(val);
-			return -1;
-		}
-		cred->excluded_ssid = e;
-
-		e = &cred->excluded_ssid[cred->num_excluded_ssid++];
-		os_memcpy(e->ssid, val, len);
-		e->ssid_len = len;
-
-		os_free(val);
-
-		return 0;
-	}
-
 	if (line) {
 		wpa_printf(MSG_ERROR, "Line %d: unknown cred field '%s'.",
 			   line, var);
@@ -2528,9 +2586,6 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 		return NULL;
 	config->eapol_version = DEFAULT_EAPOL_VERSION;
 	config->ap_scan = DEFAULT_AP_SCAN;
-#ifdef MESH_CONFIG
-	config->user_mpm = DEFAULT_USER_MPM;
-#endif /* MESH_CONFIG */
 	config->fast_reauth = DEFAULT_FAST_REAUTH;
 	config->p2p_go_intent = DEFAULT_P2P_GO_INTENT;
 	config->p2p_intra_bss = DEFAULT_P2P_INTRA_BSS;
@@ -2882,24 +2937,6 @@ static int wpa_config_process_hessid(
 }
 
 
-static int wpa_config_process_sae_groups(
-	const struct global_parse_data *data,
-	struct wpa_config *config, int line, const char *pos)
-{
-	int *groups = wpa_config_parse_int_array(pos);
-	if (groups == NULL) {
-		wpa_printf(MSG_ERROR, "Line %d: Invalid sae_groups '%s'",
-			   line, pos);
-		return -1;
-	}
-
-	os_free(config->sae_groups);
-	config->sae_groups = groups;
-
-	return 0;
-}
-
-
 #ifdef OFFSET
 #undef OFFSET
 #endif /* OFFSET */
@@ -2923,9 +2960,6 @@ static const struct global_parse_data global_fields[] = {
 #endif /* CONFIG_CTRL_IFACE */
 	{ INT_RANGE(eapol_version, 1, 2), 0 },
 	{ INT(ap_scan), 0 },
-#ifdef CONFIG_MESH
-	{ INT(user_mpm), 0 },
-#endif /* CONFIG_MESH */
 	{ INT(disable_scan_offload), 0 },
 	{ INT(fast_reauth), 0 },
 	{ STR(opensc_engine_path), 0 },
@@ -2966,9 +3000,6 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(p2p_intra_bss, 0, 1), CFG_CHANGED_P2P_INTRA_BSS },
 	{ INT(p2p_group_idle), 0 },
 	{ FUNC(p2p_pref_chan), CFG_CHANGED_P2P_PREF_CHAN },
-	{ INT(p2p_go_ht40), 0 },
-	{ INT(p2p_disabled), 0 },
-	{ INT(p2p_no_group_iface), 0 },
 #endif /* CONFIG_P2P */
 	{ FUNC(country), CFG_CHANGED_COUNTRY },
 	{ INT(bss_max_count), 0 },
@@ -2993,9 +3024,6 @@ static const struct global_parse_data global_fields[] = {
 	{ STR(ext_password_backend), CFG_CHANGED_EXT_PW_BACKEND },
 	{ INT(p2p_go_max_inactivity), 0 },
 	{ INT_RANGE(auto_interworking, 0, 1), 0 },
-	{ INT(okc), 0 },
-	{ INT(pmf), 0 },
-	{ FUNC(sae_groups), 0 },
 };
 
 #undef FUNC

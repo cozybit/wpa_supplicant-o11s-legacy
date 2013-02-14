@@ -250,6 +250,30 @@ static int hostapd_ctrl_iface_wps_check_pin(
 }
 
 
+#ifdef CONFIG_WPS_OOB
+static int hostapd_ctrl_iface_wps_oob(struct hostapd_data *hapd, char *txt)
+{
+	char *path, *method, *name;
+
+	path = os_strchr(txt, ' ');
+	if (path == NULL)
+		return -1;
+	*path++ = '\0';
+
+	method = os_strchr(path, ' ');
+	if (method == NULL)
+		return -1;
+	*method++ = '\0';
+
+	name = os_strchr(method, ' ');
+	if (name != NULL)
+		*name++ = '\0';
+
+	return hostapd_wps_start_oob(hapd, txt, path, method, name);
+}
+#endif /* CONFIG_WPS_OOB */
+
+
 #ifdef CONFIG_WPS_NFC
 static int hostapd_ctrl_iface_wps_nfc_tag_read(struct hostapd_data *hapd,
 					       char *pos)
@@ -436,50 +460,6 @@ static int hostapd_ctrl_iface_wps_config(struct hostapd_data *hapd, char *txt)
 #endif /* CONFIG_WPS */
 
 
-#ifdef CONFIG_WNM
-
-static int hostapd_ctrl_iface_disassoc_imminent(struct hostapd_data *hapd,
-						const char *cmd)
-{
-	u8 addr[ETH_ALEN];
-	u8 buf[1000], *pos;
-	struct ieee80211_mgmt *mgmt;
-	int disassoc_timer;
-
-	if (hwaddr_aton(cmd, addr))
-		return -1;
-	if (cmd[17] != ' ')
-		return -1;
-	disassoc_timer = atoi(cmd + 17);
-
-	os_memset(buf, 0, sizeof(buf));
-	mgmt = (struct ieee80211_mgmt *) buf;
-	mgmt->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
-					   WLAN_FC_STYPE_ACTION);
-	os_memcpy(mgmt->da, addr, ETH_ALEN);
-	os_memcpy(mgmt->sa, hapd->own_addr, ETH_ALEN);
-	os_memcpy(mgmt->bssid, hapd->own_addr, ETH_ALEN);
-	mgmt->u.action.category = WLAN_ACTION_WNM;
-	mgmt->u.action.u.bss_tm_req.action = WNM_BSS_TRANS_MGMT_REQ;
-	mgmt->u.action.u.bss_tm_req.dialog_token = 1;
-	mgmt->u.action.u.bss_tm_req.req_mode =
-		WNM_BSS_TM_REQ_DISASSOC_IMMINENT;
-	mgmt->u.action.u.bss_tm_req.disassoc_timer =
-		host_to_le16(disassoc_timer);
-	mgmt->u.action.u.bss_tm_req.validity_interval = 0;
-
-	pos = mgmt->u.action.u.bss_tm_req.variable;
-
-	if (hostapd_drv_send_mlme(hapd, buf, pos - buf, 0) < 0) {
-		wpa_printf(MSG_DEBUG, "Failed to send BSS Transition "
-			   "Management Request frame");
-		return -1;
-	}
-
-	return 0;
-}
-
-
 static int hostapd_ctrl_iface_ess_disassoc(struct hostapd_data *hapd,
 					   const char *cmd)
 {
@@ -529,8 +509,6 @@ static int hostapd_ctrl_iface_ess_disassoc(struct hostapd_data *hapd,
 
 	return 0;
 }
-
-#endif /* CONFIG_WNM */
 
 
 static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
@@ -635,9 +613,20 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 		pos += ret;
 	}
 
-	if (hapd->conf->wpa) {
-		ret = os_snprintf(pos, end - pos, "group_cipher=%s\n",
-				  wpa_cipher_txt(hapd->conf->wpa_group));
+	if (hapd->conf->wpa && hapd->conf->wpa_group == WPA_CIPHER_CCMP) {
+		ret = os_snprintf(pos, end - pos, "group_cipher=CCMP\n");
+		if (ret < 0 || ret >= end - pos)
+			return pos - buf;
+		pos += ret;
+	} else if (hapd->conf->wpa &&
+		   hapd->conf->wpa_group == WPA_CIPHER_GCMP) {
+		ret = os_snprintf(pos, end - pos, "group_cipher=GCMP\n");
+		if (ret < 0 || ret >= end - pos)
+			return pos - buf;
+		pos += ret;
+	} else if (hapd->conf->wpa &&
+		   hapd->conf->wpa_group == WPA_CIPHER_TKIP) {
+		ret = os_snprintf(pos, end - pos, "group_cipher=TKIP\n");
 		if (ret < 0 || ret >= end - pos)
 			return pos - buf;
 		pos += ret;
@@ -649,11 +638,24 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 			return pos - buf;
 		pos += ret;
 
-		ret = wpa_write_ciphers(pos, end, hapd->conf->rsn_pairwise,
-					" ");
-		if (ret < 0)
-			return pos - buf;
-		pos += ret;
+		if (hapd->conf->rsn_pairwise & WPA_CIPHER_CCMP) {
+			ret = os_snprintf(pos, end - pos, "CCMP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
+		if (hapd->conf->rsn_pairwise & WPA_CIPHER_GCMP) {
+			ret = os_snprintf(pos, end - pos, "GCMP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
+		if (hapd->conf->rsn_pairwise & WPA_CIPHER_TKIP) {
+			ret = os_snprintf(pos, end - pos, "TKIP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
 
 		ret = os_snprintf(pos, end - pos, "\n");
 		if (ret < 0 || ret >= end - pos)
@@ -667,11 +669,24 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 			return pos - buf;
 		pos += ret;
 
-		ret = wpa_write_ciphers(pos, end, hapd->conf->rsn_pairwise,
-					" ");
-		if (ret < 0)
-			return pos - buf;
-		pos += ret;
+		if (hapd->conf->wpa_pairwise & WPA_CIPHER_CCMP) {
+			ret = os_snprintf(pos, end - pos, "CCMP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
+		if (hapd->conf->wpa_pairwise & WPA_CIPHER_GCMP) {
+			ret = os_snprintf(pos, end - pos, "GCMP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
+		if (hapd->conf->wpa_pairwise & WPA_CIPHER_TKIP) {
+			ret = os_snprintf(pos, end - pos, "TKIP ");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
 
 		ret = os_snprintf(pos, end - pos, "\n");
 		if (ret < 0 || ret >= end - pos)
@@ -897,6 +912,11 @@ static void hostapd_ctrl_iface_receive(int sock, void *eloop_ctx,
 	} else if (os_strcmp(buf, "WPS_CANCEL") == 0) {
 		if (hostapd_wps_cancel(hapd))
 			reply_len = -1;
+#ifdef CONFIG_WPS_OOB
+	} else if (os_strncmp(buf, "WPS_OOB ", 8) == 0) {
+		if (hostapd_ctrl_iface_wps_oob(hapd, buf + 8))
+			reply_len = -1;
+#endif /* CONFIG_WPS_OOB */
 	} else if (os_strncmp(buf, "WPS_AP_PIN ", 11) == 0) {
 		reply_len = hostapd_ctrl_iface_wps_ap_pin(hapd, buf + 11,
 							  reply, reply_size);
@@ -915,14 +935,9 @@ static void hostapd_ctrl_iface_receive(int sock, void *eloop_ctx,
 			hapd, buf + 14, reply, reply_size);
 #endif /* CONFIG_WPS_NFC */
 #endif /* CONFIG_WPS */
-#ifdef CONFIG_WNM
-	} else if (os_strncmp(buf, "DISASSOC_IMMINENT ", 18) == 0) {
-		if (hostapd_ctrl_iface_disassoc_imminent(hapd, buf + 18))
-			reply_len = -1;
 	} else if (os_strncmp(buf, "ESS_DISASSOC ", 13) == 0) {
 		if (hostapd_ctrl_iface_ess_disassoc(hapd, buf + 13))
 			reply_len = -1;
-#endif /* CONFIG_WNM */
 	} else if (os_strcmp(buf, "GET_CONFIG") == 0) {
 		reply_len = hostapd_ctrl_iface_get_config(hapd, reply,
 							  reply_size);
@@ -1011,26 +1026,11 @@ int hostapd_ctrl_iface_init(struct hostapd_data *hapd)
 	}
 
 	if (hapd->conf->ctrl_interface_gid_set &&
-	    chown(hapd->conf->ctrl_interface, -1,
+	    chown(hapd->conf->ctrl_interface, 0,
 		  hapd->conf->ctrl_interface_gid) < 0) {
 		perror("chown[ctrl_interface]");
 		return -1;
 	}
-
-#ifdef ANDROID
-	/*
-	 * Android is using umask 0077 which would leave the control interface
-	 * directory without group access. This breaks things since Wi-Fi
-	 * framework assumes that this directory can be accessed by other
-	 * applications in the wifi group. Fix this by adding group access even
-	 * if umask value would prevent this.
-	 */
-	if (chmod(hapd->conf->ctrl_interface, S_IRWXU | S_IRWXG) < 0) {
-		wpa_printf(MSG_ERROR, "CTRL: Could not chmod directory: %s",
-			   strerror(errno));
-		/* Try to continue anyway */
-	}
-#endif /* ANDROID */
 
 	if (os_strlen(hapd->conf->ctrl_interface) + 1 +
 	    os_strlen(hapd->conf->iface) >= sizeof(addr.sun_path))
@@ -1084,7 +1084,7 @@ int hostapd_ctrl_iface_init(struct hostapd_data *hapd)
 	}
 
 	if (hapd->conf->ctrl_interface_gid_set &&
-	    chown(fname, -1, hapd->conf->ctrl_interface_gid) < 0) {
+	    chown(fname, 0, hapd->conf->ctrl_interface_gid) < 0) {
 		perror("chown[ctrl_interface/ifname]");
 		goto fail;
 	}

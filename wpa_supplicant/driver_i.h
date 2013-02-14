@@ -65,15 +65,6 @@ static inline int wpa_drv_associate(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
-static inline int wpa_drv_join_mesh(struct wpa_supplicant *wpa_s,
-				    struct wpa_driver_mesh_join_params *params)
-{
-	if (wpa_s->driver->join_mesh) {
-		return wpa_s->driver->join_mesh(wpa_s->drv_priv, params);
-	}
-	return -1;
-}
-
 static inline int wpa_drv_scan(struct wpa_supplicant *wpa_s,
 			       struct wpa_driver_scan_params *params)
 {
@@ -144,6 +135,16 @@ static inline int wpa_drv_deauthenticate(struct wpa_supplicant *wpa_s,
 	if (wpa_s->driver->deauthenticate) {
 		return wpa_s->driver->deauthenticate(wpa_s->drv_priv, addr,
 						     reason_code);
+	}
+	return -1;
+}
+
+static inline int wpa_drv_disassociate(struct wpa_supplicant *wpa_s,
+				       const u8 *addr, int reason_code)
+{
+	if (wpa_s->driver->disassociate) {
+		return wpa_s->driver->disassociate(wpa_s->drv_priv, addr,
+						   reason_code);
 	}
 	return -1;
 }
@@ -662,6 +663,16 @@ static inline int wpa_drv_tdls_oper(struct wpa_supplicant *wpa_s,
 		return -1;
 	return wpa_s->driver->tdls_oper(wpa_s->drv_priv, oper, peer);
 }
+
+#ifdef ANDROID
+static inline int wpa_drv_driver_cmd(struct wpa_supplicant *wpa_s,
+				     char *cmd, char *buf, size_t buf_len)
+{
+	if (!wpa_s->driver->driver_cmd)
+		return -1;
+	return wpa_s->driver->driver_cmd(wpa_s->drv_priv, cmd, buf, buf_len);
+}
+#endif
 
 static inline void wpa_drv_set_rekey_info(struct wpa_supplicant *wpa_s,
 					  const u8 *kek, const u8 *kck,

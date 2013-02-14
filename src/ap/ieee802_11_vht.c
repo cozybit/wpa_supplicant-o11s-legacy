@@ -68,8 +68,6 @@ u8 * hostapd_eid_vht_operation(struct hostapd_data *hapd, u8 *eid)
 	 */
 	oper->vht_op_info_chan_center_freq_seg0_idx =
 		hapd->iconf->vht_oper_centr_freq_seg0_idx;
-	oper->vht_op_info_chan_center_freq_seg1_idx =
-		hapd->iconf->vht_oper_centr_freq_seg1_idx;
 
 	oper->vht_op_info_chwidth = hapd->iconf->vht_oper_chwidth;
 
@@ -107,15 +105,4 @@ u16 copy_sta_vht_capab(struct hostapd_data *hapd, struct sta_info *sta,
 		  sizeof(struct ieee80211_vht_capabilities));
 
 	return WLAN_STATUS_SUCCESS;
-}
-
-void hostapd_get_vht_capab(struct hostapd_data *hapd,
-			   struct ieee80211_vht_capabilities *vht_cap,
-			   struct ieee80211_vht_capabilities *neg_vht_cap)
-{
-	if (vht_cap == NULL)
-		return;
-	os_memcpy(neg_vht_cap, vht_cap, sizeof(*neg_vht_cap));
-
-	/* TODO: mask own capabilities, like get_ht_capab() */
 }

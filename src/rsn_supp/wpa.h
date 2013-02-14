@@ -24,6 +24,7 @@ struct wpa_sm_ctx {
 	void (*set_state)(void *ctx, enum wpa_states state);
 	enum wpa_states (*get_state)(void *ctx);
 	void (*deauthenticate)(void * ctx, int reason_code); 
+	void (*disassociate)(void *ctx, int reason_code);
 	int (*set_key)(void *ctx, enum wpa_alg alg,
 		       const u8 *addr, int key_idx, int set_tx,
 		       const u8 *seq, size_t seq_len,
@@ -365,6 +366,8 @@ void wpa_tdls_enable(struct wpa_sm *sm, int enabled);
 void wpa_tdls_disable_link(struct wpa_sm *sm, const u8 *addr);
 int wpa_tdls_is_external_setup(struct wpa_sm *sm);
 
+#ifdef CONFIG_IEEE80211V
 int wpa_wnmsleep_install_key(struct wpa_sm *sm, u8 subelem_id, u8 *buf);
+#endif /* CONFIG_IEEE80211V */
 
 #endif /* WPA_H */

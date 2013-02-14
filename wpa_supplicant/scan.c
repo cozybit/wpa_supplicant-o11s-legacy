@@ -1,6 +1,6 @@
 /*
  * WPA Supplicant - Scanning
- * Copyright (c) 2003-2012, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2003-2010, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -66,8 +66,7 @@ static int wpas_wps_in_use(struct wpa_supplicant *wpa_s,
 	}
 
 #ifdef CONFIG_P2P
-	if (!wpa_s->global->p2p_disabled && wpa_s->global->p2p &&
-	    !wpa_s->conf->p2p_disabled) {
+	if (!wpa_s->global->p2p_disabled && wpa_s->global->p2p) {
 		wpa_s->wps->dev.p2p = 1;
 		if (!wps) {
 			wps = 1;
@@ -81,15 +80,6 @@ static int wpas_wps_in_use(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_WPS */
 
 
-/**
- * wpa_supplicant_enabled_networks - Check whether there are enabled networks
- * @wpa_s: Pointer to wpa_supplicant data
- * Returns: 0 if no networks are enabled, >0 if networks are enabled
- *
- * This function is used to figure out whether any networks (or Interworking
- * with enabled credentials and auto_interworking) are present in the current
- * configuration.
- */
 int wpa_supplicant_enabled_networks(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_ssid *ssid = wpa_s->conf->ssid;
@@ -208,12 +198,6 @@ static void int_array_sort_unique(int *a)
 }
 
 
-/**
- * wpa_supplicant_trigger_scan - Request driver to start a scan
- * @wpa_s: Pointer to wpa_supplicant data
- * @params: Scan parameters
- * Returns: 0 on success, -1 on failure
- */
 int wpa_supplicant_trigger_scan(struct wpa_supplicant *wpa_s,
 				struct wpa_driver_scan_params *params)
 {
@@ -264,13 +248,18 @@ wpa_supplicant_start_sched_scan(struct wpa_supplicant *wpa_s,
 				int interval)
 {
 	int ret;
-
+#ifndef ANDROID_P2P
 	wpa_supplicant_notify_scanning(wpa_s, 1);
+#endif
 	ret = wpa_drv_sched_scan(wpa_s, params, interval * 1000);
 	if (ret)
 		wpa_supplicant_notify_scanning(wpa_s, 0);
-	else
+	else {
 		wpa_s->sched_scanning = 1;
+#ifdef ANDROID_P2P
+		wpa_supplicant_notify_scanning(wpa_s, 1);
+#endif
+	}
 
 	return ret;
 }
@@ -450,78 +439,11 @@ static struct wpabuf * wpa_supplicant_extra_ies(struct wpa_supplicant *wpa_s)
 }
 
 
-#ifdef CONFIG_P2P
-
-/*
- * Check whether there are any enabled networks or credentials that could be
- * used for a non-P2P connection.
- */
-static int non_p2p_network_enabled(struct wpa_supplicant *wpa_s)
-{
-	struct wpa_ssid *ssid;
-
-	for (ssid = wpa_s->conf->ssid; ssid; ssid = ssid->next) {
-		if (wpas_network_disabled(wpa_s, ssid))
-			continue;
-		if (!ssid->p2p_group)
-			return 1;
-	}
-
-	if (wpa_s->conf->cred && wpa_s->conf->interworking &&
-	    wpa_s->conf->auto_interworking)
-		return 1;
-
-	return 0;
-}
-
-
-/*
- * Find the operating frequency of any other virtual interface that is using
- * the same radio concurrently.
- */
-static int shared_vif_oper_freq(struct wpa_supplicant *wpa_s)
-{
-	const char *rn, *rn2;
-	struct wpa_supplicant *ifs;
-	u8 bssid[ETH_ALEN];
-
-	if (!wpa_s->driver->get_radio_name)
-		return -1;
-
-	rn = wpa_s->driver->get_radio_name(wpa_s->drv_priv);
-	if (rn == NULL || rn[0] == '\0')
-		return -1;
-
-	for (ifs = wpa_s->global->ifaces; ifs; ifs = ifs->next) {
-		if (ifs == wpa_s || !ifs->driver->get_radio_name)
-			continue;
-
-		rn2 = ifs->driver->get_radio_name(ifs->drv_priv);
-		if (!rn2 || os_strcmp(rn, rn2) != 0)
-			continue;
-
-		if (ifs->current_ssid == NULL || ifs->assoc_freq == 0)
-			continue;
-
-		if (ifs->current_ssid->mode == WPAS_MODE_AP ||
-		    ifs->current_ssid->mode == WPAS_MODE_P2P_GO)
-			return ifs->current_ssid->frequency;
-		if (wpa_drv_get_bssid(ifs, bssid) == 0)
-			return ifs->assoc_freq;
-	}
-
-	return 0;
-}
-
-#endif /* CONFIG_P2P */
-
-
 static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	struct wpa_ssid *ssid;
-	enum scan_req_type scan_req = NORMAL_SCAN_REQ;
-	int ret;
+	int scan_req = 0, ret;
 	struct wpabuf *extra_ie = NULL;
 	struct wpa_driver_scan_params params;
 	struct wpa_driver_scan_params *scan_params;
@@ -533,14 +455,20 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		return;
 	}
 
-	if (wpa_s->disconnected && wpa_s->scan_req == NORMAL_SCAN_REQ) {
+	if (wpa_s->disconnected && !wpa_s->scan_req) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "Disconnected - do not scan");
 		wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
 		return;
 	}
-
+#ifdef ANDROID
+	if (wpa_s->scanning) {
+		/* If we are already in scanning state, we shall ignore this new scan request*/
+		wpa_dbg(wpa_s, MSG_DEBUG, "Skip scan - already scanning");
+		return;
+	}
+#endif
 	if (!wpa_supplicant_enabled_networks(wpa_s) &&
-	    wpa_s->scan_req == NORMAL_SCAN_REQ) {
+	    !wpa_s->scan_req) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "No enabled networks - do not scan");
 		wpa_supplicant_set_state(wpa_s, WPA_INACTIVE);
 #ifdef CONFIG_P2P
@@ -588,7 +516,7 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 	}
 
 	scan_req = wpa_s->scan_req;
-	wpa_s->scan_req = NORMAL_SCAN_REQ;
+	wpa_s->scan_req = 0;
 
 	os_memset(&params, 0, sizeof(params));
 
@@ -605,7 +533,7 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		goto scan;
 	}
 
-	if (scan_req != MANUAL_SCAN_REQ && wpa_s->connect_without_scan) {
+	if (scan_req != 2 && wpa_s->connect_without_scan) {
 		for (ssid = wpa_s->conf->ssid; ssid; ssid = ssid->next) {
 			if (ssid == wpa_s->connect_without_scan)
 				break;
@@ -643,17 +571,19 @@ static void wpa_supplicant_scan(void *eloop_ctx, void *timeout_ctx)
 		}
 	}
 
-	if (scan_req != MANUAL_SCAN_REQ && wpa_s->conf->ap_scan == 2) {
+	if (scan_req != 2 && wpa_s->conf->ap_scan == 2) {
 		wpa_s->connect_without_scan = NULL;
 		wpa_s->prev_scan_wildcard = 0;
 		wpa_supplicant_assoc_try(wpa_s, ssid);
 		return;
+#ifndef ANDROID
 	} else if (wpa_s->conf->ap_scan == 2) {
 		/*
 		 * User-initiated scan request in ap_scan == 2; scan with
 		 * wildcard SSID.
 		 */
 		ssid = NULL;
+#endif
 	} else {
 		struct wpa_ssid *start = ssid, *tssid;
 		int freqs_set = 0;
@@ -768,35 +698,6 @@ ssid_list_set:
 	scan_params = &params;
 
 scan:
-#ifdef CONFIG_P2P
-	/*
-	 * If the driver does not support multi-channel concurrency and a
-	 * virtual interface that shares the same radio with the wpa_s interface
-	 * is operating there may not be need to scan other channels apart from
-	 * the current operating channel on the other virtual interface. Filter
-	 * out other channels in case we are trying to find a connection for a
-	 * station interface when we are not configured to prefer station
-	 * connection and a concurrent operation is already in process.
-	 */
-	if (wpa_s->scan_for_connection && scan_req == NORMAL_SCAN_REQ &&
-	    !scan_params->freqs && !params.freqs &&
-	    wpas_is_p2p_prioritized(wpa_s) &&
-	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_MULTI_CHANNEL_CONCURRENT) &&
-	    wpa_s->p2p_group_interface == NOT_P2P_GROUP_INTERFACE &&
-	    non_p2p_network_enabled(wpa_s)) {
-		int freq = shared_vif_oper_freq(wpa_s);
-		if (freq > 0) {
-			wpa_dbg(wpa_s, MSG_DEBUG, "P2P: Scan only the current "
-				"operating channel (%d MHz) since driver does "
-				"not support multi-channel concurrency", freq);
-			params.freqs = os_zalloc(sizeof(int) * 2);
-			if (params.freqs)
-				params.freqs[0] = freq;
-			scan_params->freqs = params.freqs;
-		}
-	}
-#endif /* CONFIG_P2P */
-
 	ret = wpa_supplicant_trigger_scan(wpa_s, scan_params);
 
 	wpabuf_free(extra_ie);
@@ -805,13 +706,15 @@ scan:
 
 	if (ret) {
 		wpa_msg(wpa_s, MSG_WARNING, "Failed to initiate AP scan");
+#ifdef ANDROID_P2P
+		/* Restore back the wpa_s->scan_req if we failed the scan because of any reason */
+		wpa_msg(wpa_s, MSG_DEBUG, "Restoring back the wpa_s->scan_req "
+			"to the original value %d", scan_req);
+		wpa_s->scan_req = scan_req;
+#endif
 		if (prev_state != wpa_s->wpa_state)
 			wpa_supplicant_set_state(wpa_s, prev_state);
-		/* Restore scan_req since we will try to scan again */
-		wpa_s->scan_req = scan_req;
 		wpa_supplicant_req_scan(wpa_s, 1, 0);
-	} else {
-		wpa_s->scan_for_connection = 0;
 	}
 }
 
@@ -827,6 +730,7 @@ scan:
  */
 void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 {
+#ifndef ANDROID
 	/* If there's at least one network that should be specifically scanned
 	 * then don't cancel the scan and reschedule.  Some drivers do
 	 * background scanning which generates frequent scan results, and that
@@ -849,7 +753,7 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
 			return;
 		}
 	}
-
+#endif
 	wpa_dbg(wpa_s, MSG_DEBUG, "Setting scan request: %d sec %d usec",
 		sec, usec);
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
@@ -862,7 +766,6 @@ void wpa_supplicant_req_scan(struct wpa_supplicant *wpa_s, int sec, int usec)
  * @wpa_s: Pointer to wpa_supplicant data
  * @sec: Number of seconds after which to scan
  * @usec: Number of microseconds after which to scan
- * Returns: 0 on success or -1 otherwise
  *
  * This function is used to schedule periodic scans for neighboring
  * access points after the specified time.
@@ -884,7 +787,6 @@ int wpa_supplicant_delayed_sched_scan(struct wpa_supplicant *wpa_s,
 /**
  * wpa_supplicant_req_sched_scan - Start a periodic scheduled scan
  * @wpa_s: Pointer to wpa_supplicant data
- * Returns: 0 is sched_scan was started or -1 otherwise
  *
  * This function is used to schedule periodic scans for neighboring
  * access points repeating the scan continuously.
@@ -966,9 +868,11 @@ int wpa_supplicant_req_sched_scan(struct wpa_supplicant *wpa_s)
 					sizeof(struct wpa_driver_scan_filter));
 
 	prev_state = wpa_s->wpa_state;
+#ifndef ANDROID_P2P
 	if (wpa_s->wpa_state == WPA_DISCONNECTED ||
 	    wpa_s->wpa_state == WPA_INACTIVE)
 		wpa_supplicant_set_state(wpa_s, WPA_SCANNING);
+#endif
 
 	if (wpa_s->autoscan_params != NULL) {
 		scan_params = wpa_s->autoscan_params;
@@ -1113,6 +1017,9 @@ void wpa_supplicant_cancel_scan(struct wpa_supplicant *wpa_s)
 {
 	wpa_dbg(wpa_s, MSG_DEBUG, "Cancelling scan request");
 	eloop_cancel_timeout(wpa_supplicant_scan, wpa_s, NULL);
+#ifdef ANDROID
+	wpa_supplicant_notify_scanning(wpa_s, 0);
+#endif
 }
 
 
@@ -1133,21 +1040,16 @@ void wpa_supplicant_cancel_sched_scan(struct wpa_supplicant *wpa_s)
 }
 
 
-/**
- * wpa_supplicant_notify_scanning - Indicate possible scan state change
- * @wpa_s: Pointer to wpa_supplicant data
- * @scanning: Whether scanning is currently in progress
- *
- * This function is to generate scanning notifycations. It is called whenever
- * there may have been a change in scanning (scan started, completed, stopped).
- * wpas_notify_scanning() is called whenever the scanning state changed from the
- * previously notified state.
- */
 void wpa_supplicant_notify_scanning(struct wpa_supplicant *wpa_s,
 				    int scanning)
 {
 	if (wpa_s->scanning != scanning) {
+#ifdef ANDROID_P2P
+		if(!wpa_s->sched_scanning)
+			wpa_s->scanning = scanning;
+#else
 		wpa_s->scanning = scanning;
+#endif
 		wpas_notify_scanning(wpa_s);
 	}
 }
@@ -1175,15 +1077,6 @@ static int wpa_scan_get_max_rate(const struct wpa_scan_res *res)
 }
 
 
-/**
- * wpa_scan_get_ie - Fetch a specified information element from a scan result
- * @res: Scan result entry
- * @ie: Information element identitifier (WLAN_EID_*)
- * Returns: Pointer to the information element (id field) or %NULL if not found
- *
- * This function returns the first matching information element in the scan
- * result.
- */
 const u8 * wpa_scan_get_ie(const struct wpa_scan_res *res, u8 ie)
 {
 	const u8 *end, *pos;
@@ -1203,15 +1096,6 @@ const u8 * wpa_scan_get_ie(const struct wpa_scan_res *res, u8 ie)
 }
 
 
-/**
- * wpa_scan_get_vendor_ie - Fetch vendor information element from a scan result
- * @res: Scan result entry
- * @vendor_type: Vendor type (four octets starting the IE payload)
- * Returns: Pointer to the information element (id field) or %NULL if not found
- *
- * This function returns the first matching information element in the scan
- * result.
- */
 const u8 * wpa_scan_get_vendor_ie(const struct wpa_scan_res *res,
 				  u32 vendor_type)
 {
@@ -1233,16 +1117,6 @@ const u8 * wpa_scan_get_vendor_ie(const struct wpa_scan_res *res,
 }
 
 
-/**
- * wpa_scan_get_vendor_ie_multi - Fetch vendor IE data from a scan result
- * @res: Scan result entry
- * @vendor_type: Vendor type (four octets starting the IE payload)
- * Returns: Pointer to the information element payload or %NULL if not found
- *
- * This function returns concatenated payload of possibly fragmented vendor
- * specific information elements in the scan result. The caller is responsible
- * for freeing the returned buffer.
- */
 struct wpabuf * wpa_scan_get_vendor_ie_multi(const struct wpa_scan_res *res,
 					     u32 vendor_type)
 {
@@ -1255,6 +1129,40 @@ struct wpabuf * wpa_scan_get_vendor_ie_multi(const struct wpa_scan_res *res,
 
 	pos = (const u8 *) (res + 1);
 	end = pos + res->ie_len;
+
+	while (pos + 1 < end) {
+		if (pos + 2 + pos[1] > end)
+			break;
+		if (pos[0] == WLAN_EID_VENDOR_SPECIFIC && pos[1] >= 4 &&
+		    vendor_type == WPA_GET_BE32(&pos[2]))
+			wpabuf_put_data(buf, pos + 2 + 4, pos[1] - 4);
+		pos += 2 + pos[1];
+	}
+
+	if (wpabuf_len(buf) == 0) {
+		wpabuf_free(buf);
+		buf = NULL;
+	}
+
+	return buf;
+}
+
+
+struct wpabuf * wpa_scan_get_vendor_ie_multi_beacon(
+	const struct wpa_scan_res *res, u32 vendor_type)
+{
+	struct wpabuf *buf;
+	const u8 *end, *pos;
+
+	if (res->beacon_ie_len == 0)
+		return NULL;
+	buf = wpabuf_alloc(res->beacon_ie_len);
+	if (buf == NULL)
+		return NULL;
+
+	pos = (const u8 *) (res + 1);
+	pos += res->ie_len;
+	end = pos + res->beacon_ie_len;
 
 	while (pos + 1 < end) {
 		if (pos + 2 + pos[1] > end)
@@ -1437,15 +1345,6 @@ static void dump_scan_res(struct wpa_scan_results *scan_res)
 }
 
 
-/**
- * wpa_supplicant_filter_bssid_match - Is the specified BSSID allowed
- * @wpa_s: Pointer to wpa_supplicant data
- * @bssid: BSSID to check
- * Returns: 0 if the BSSID is filtered or 1 if not
- *
- * This function is used to filter out specific BSSIDs from scan reslts mainly
- * for testing purposes (SET bssid_filter ctrl_iface command).
- */
 int wpa_supplicant_filter_bssid_match(struct wpa_supplicant *wpa_s,
 				      const u8 *bssid)
 {
@@ -1537,18 +1436,6 @@ wpa_supplicant_get_scan_results(struct wpa_supplicant *wpa_s,
 }
 
 
-/**
- * wpa_supplicant_update_scan_results - Update scan results from the driver
- * @wpa_s: Pointer to wpa_supplicant data
- * Returns: 0 on success, -1 on failure
- *
- * This function updates the BSS table within wpa_supplicant based on the
- * currently available scan results from the driver without requesting a new
- * scan. This is used in cases where the driver indicates an association
- * (including roaming within ESS) and wpa_supplicant does not yet have the
- * needed information to complete the connection (e.g., to perform validation
- * steps in 4-way handshake).
- */
 int wpa_supplicant_update_scan_results(struct wpa_supplicant *wpa_s)
 {
 	struct wpa_scan_results *scan_res;

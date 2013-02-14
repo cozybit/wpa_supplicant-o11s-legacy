@@ -348,7 +348,6 @@ SM_STATE(EAP, METHOD)
 {
 	struct wpabuf *eapReqData;
 	struct eap_method_ret ret;
-	int min_len = 1;
 
 	SM_ENTRY(EAP, METHOD);
 	if (sm->m == NULL) {
@@ -357,9 +356,7 @@ SM_STATE(EAP, METHOD)
 	}
 
 	eapReqData = eapol_get_eapReqData(sm);
-	if (sm->m->vendor == EAP_VENDOR_IETF && sm->m->method == EAP_TYPE_LEAP)
-		min_len = 0; /* LEAP uses EAP-Success without payload */
-	if (!eap_hdr_len_valid(eapReqData, min_len))
+	if (!eap_hdr_len_valid(eapReqData, 1))
 		return;
 
 	/*
@@ -891,7 +888,6 @@ static void eap_sm_processIdentity(struct eap_sm *sm, const struct wpabuf *req)
 
 	wpa_msg(sm->msg_ctx, MSG_INFO, WPA_EVENT_EAP_STARTED
 		"EAP authentication started");
-	eap_notify_status(sm, "started", "");
 
 	pos = eap_hdr_validate(EAP_VENDOR_IETF, EAP_TYPE_IDENTITY, req,
 			       &msg_len);

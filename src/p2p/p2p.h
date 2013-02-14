@@ -53,6 +53,10 @@ enum p2p_wps_method {
 	WPS_NOT_READY, WPS_PIN_DISPLAY, WPS_PIN_KEYPAD, WPS_PBC
 };
 
+enum p2p_sd_action {
+	SRV_UPDATE, SRV_ADD, SRV_DEL, SRV_FLUSH
+};
+
 /**
  * struct p2p_go_neg_results - P2P Group Owner Negotiation results
  */
@@ -86,16 +90,6 @@ struct p2p_go_neg_results {
 	 * ssid_len - Length of SSID in octets
 	 */
 	size_t ssid_len;
-
-	/**
-	 * psk - WPA pre-shared key (256 bits) (GO only)
-	 */
-	u8 psk[32];
-
-	/**
-	 * psk_set - Whether PSK field is configured (GO only)
-	 */
-	int psk_set;
 
 	/**
 	 * passphrase - WPA2-Personal passphrase for the group (GO only)
@@ -143,6 +137,7 @@ struct p2p_data;
 enum p2p_scan_type {
 	P2P_SCAN_SOCIAL,
 	P2P_SCAN_FULL,
+	P2P_SCAN_SPECIFIC,
 	P2P_SCAN_SOCIAL_PLUS_ONE
 };
 
@@ -232,7 +227,6 @@ enum p2p_prov_disc_status {
 	P2P_PROV_DISC_SUCCESS,
 	P2P_PROV_DISC_TIMEOUT,
 	P2P_PROV_DISC_REJECTED,
-	P2P_PROV_DISC_TIMEOUT_JOIN,
 };
 
 struct p2p_channel {
@@ -365,10 +359,13 @@ struct p2p_config {
 	 */
 	size_t ssid_postfix_len;
 
-	/**
-	 * max_listen - Maximum listen duration in ms
-	 */
-	unsigned int max_listen;
+#ifdef ANDROID_P2P
+	enum p2p_concurrency_type {
+		P2P_NON_CONCURRENT,
+		P2P_SINGLE_CHANNEL_CONCURRENT,
+		P2P_MULTI_CHANNEL_CONCURRENT,
+	} p2p_concurrency;
+#endif
 
 	/**
 	 * msg_ctx - Context to use with wpa_msg() calls
@@ -905,8 +902,6 @@ int p2p_listen(struct p2p_data *p2p, unsigned int timeout);
  * @pd_before_go_neg: Whether to send Provision Discovery prior to GO
  *	Negotiation as an interoperability workaround when initiating group
  *	formation
- * @pref_freq: Preferred operating frequency in MHz or 0 (this is only used if
- *	force_freq == 0)
  * Returns: 0 on success, -1 on failure
  */
 int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
@@ -914,7 +909,7 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
 		int go_intent, const u8 *own_interface_addr,
 		unsigned int force_freq, int persistent_group,
 		const u8 *force_ssid, size_t force_ssid_len,
-		int pd_before_go_neg, unsigned int pref_freq);
+		int pd_before_go_neg);
 
 /**
  * p2p_authorize - Authorize P2P group formation (GO negotiation)
@@ -930,8 +925,6 @@ int p2p_connect(struct p2p_data *p2p, const u8 *peer_addr,
  * @force_ssid: Forced SSID for the group if we become GO or %NULL to generate
  *	a new SSID
  * @force_ssid_len: Length of $force_ssid buffer
- * @pref_freq: Preferred operating frequency in MHz or 0 (this is only used if
- *	force_freq == 0)
  * Returns: 0 on success, -1 on failure
  *
  * This is like p2p_connect(), but the actual group negotiation is not
@@ -941,8 +934,7 @@ int p2p_authorize(struct p2p_data *p2p, const u8 *peer_addr,
 		  enum p2p_wps_method wps_method,
 		  int go_intent, const u8 *own_interface_addr,
 		  unsigned int force_freq, int persistent_group,
-		  const u8 *force_ssid, size_t force_ssid_len,
-		  unsigned int pref_freq);
+		  const u8 *force_ssid, size_t force_ssid_len);
 
 /**
  * p2p_reject - Reject peer device (explicitly block connection attempts)
@@ -959,7 +951,6 @@ int p2p_reject(struct p2p_data *p2p, const u8 *peer_addr);
  * @config_methods: WPS Config Methods value (only one bit set)
  * @join: Whether this is used by a client joining an active group
  * @force_freq: Forced TX frequency for the frame (mainly for the join case)
- * @user_initiated_pd: Flag to indicate if initiated by user or not
  * Returns: 0 on success, -1 on failure
  *
  * This function can be used to request a discovered P2P peer to display a PIN
@@ -971,8 +962,7 @@ int p2p_reject(struct p2p_data *p2p, const u8 *peer_addr);
  * indicated with the p2p_config::prov_disc_resp() callback.
  */
 int p2p_prov_disc_req(struct p2p_data *p2p, const u8 *peer_addr,
-		      u16 config_methods, int join, int force_freq,
-		      int user_initiated_pd);
+		      u16 config_methods, int join, int force_freq);
 
 /**
  * p2p_sd_request - Schedule a service discovery query
@@ -1022,7 +1012,11 @@ void p2p_sd_response(struct p2p_data *p2p, int freq, const u8 *dst,
  * of the local services. This will increment the Service Update Indicator
  * value which will be used in SD Request and Response frames.
  */
+#ifdef ANDROID_P2P
+void p2p_sd_service_update(struct p2p_data *p2p, int action);
+#else
 void p2p_sd_service_update(struct p2p_data *p2p);
+#endif
 
 
 enum p2p_invite_role {
@@ -1183,7 +1177,6 @@ void p2p_rx_action(struct p2p_data *p2p, const u8 *da, const u8 *sa,
  * @p2p: P2P module context from p2p_init()
  * @bssid: BSSID of the scan result
  * @freq: Frequency of the channel on which the device was found in MHz
- * @age: Age of the scan result in milliseconds
  * @level: Signal level (signal strength of the received Beacon/Probe Response
  *	frame)
  * @ies: Pointer to IEs from the scan result
@@ -1205,8 +1198,7 @@ void p2p_rx_action(struct p2p_data *p2p, const u8 *da, const u8 *sa,
  * start of a pending operation, e.g., to start a pending GO negotiation.
  */
 int p2p_scan_res_handler(struct p2p_data *p2p, const u8 *bssid, int freq,
-			 unsigned int age, int level, const u8 *ies,
-			 size_t ies_len);
+			 int level, const u8 *ies, size_t ies_len);
 
 /**
  * p2p_scan_res_handled - Indicate end of scan results
@@ -1725,6 +1717,22 @@ int p2p_set_pref_chan(struct p2p_data *p2p, unsigned int num_pref_chan,
  */
 int p2p_in_progress(struct p2p_data *p2p);
 
+#ifdef ANDROID_P2P
+/**
+ * p2p_search_in_progress - Check whether a P2P SEARCH is in progress
+ * @p2p: P2P module context from p2p_init()
+ * Returns: 0 if P2P module is idle or 1 if an operation is in progress
+ */
+int p2p_search_in_progress(struct p2p_data *p2p);
+
+/**
+ * p2p_search_pending - Check whether there is a deferred P2P SEARCH
+ * @p2p: P2P module context from p2p_init()
+ * Returns: 0 if there is no deferred P2P search or 1 if there is one
+ */
+int p2p_search_pending(struct p2p_data *p2p);
+#endif
+
 /**
  * p2p_other_scan_completed - Notify completion of non-P2P scan
  * @p2p: P2P module context from p2p_init()
@@ -1758,26 +1766,5 @@ int p2p_set_wfd_assoc_bssid(struct p2p_data *p2p, const struct wpabuf *elem);
 int p2p_set_wfd_coupled_sink_info(struct p2p_data *p2p,
 				  const struct wpabuf *elem);
 struct wpabuf * wifi_display_encaps(struct wpabuf *subelems);
-
-/**
- * p2p_set_disc_int - Set min/max discoverable interval for p2p_find
- * @p2p: P2P module context from p2p_init()
- * @min_disc_int: minDiscoverableInterval (in units of 100 TU); default 1
- * @max_disc_int: maxDiscoverableInterval (in units of 100 TU); default 3
- * @max_disc_tu: Maximum number of TUs (1.024 ms) for discoverable interval; or
- *	-1 not to limit
- * Returns: 0 on success, or -1 on failure
- *
- * This function can be used to configure minDiscoverableInterval and
- * maxDiscoverableInterval parameters for the Listen state during device
- * discovery (p2p_find). A random number of 100 TU units is picked for each
- * Listen state iteration from [min_disc_int,max_disc_int] range.
- *
- * max_disc_tu can be used to futher limit the discoverable duration. However,
- * it should be noted that use of this parameter is not recommended since it
- * would not be compliant with the P2P specification.
- */
-int p2p_set_disc_int(struct p2p_data *p2p, int min_disc_int, int max_disc_int,
-		     int max_disc_tu);
 
 #endif /* P2P_H */

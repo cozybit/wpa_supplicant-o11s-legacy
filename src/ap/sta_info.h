@@ -9,11 +9,6 @@
 #ifndef STA_INFO_H
 #define STA_INFO_H
 
-#ifdef CONFIG_MESH
-/* XXX: needed for enum mesh_plink_state, this is wrong? */
-#include "common/defs.h"
-#endif /* CONFIG_MESH */
-
 /* STA flags */
 #define WLAN_STA_AUTH BIT(0)
 #define WLAN_STA_ASSOC BIT(1)
@@ -54,14 +49,6 @@ struct sta_info {
 	u8 supported_rates[WLAN_SUPP_RATES_MAX];
 	int supported_rates_len;
 	u8 qosinfo; /* Valid when WLAN_STA_WMM is set */
-
-#ifdef CONFIG_MESH
-	enum mesh_plink_state plink_state;
-	u16 peer_lid;
-	u16 my_lid;
-	u16 mpm_close_reason;
-	int mpm_retries;
-#endif /* CONFIG_MESH */
 
 	unsigned int nonerp_set:1;
 	unsigned int no_short_slot_time_set:1;
@@ -108,8 +95,7 @@ struct sta_info {
 	struct hostapd_ssid *ssid_probe; /* SSID selection based on ProbeReq */
 
 	int vlan_id;
-	 /* PSKs from RADIUS authentication server */
-	struct hostapd_sta_wpa_psk_short *psk;
+	u8 *psk; /* PSK from RADIUS authentication server */
 
 	char *identity; /* User-Name from RADIUS */
 	char *radius_cui; /* Chargeable-User-Identity from RADIUS */
@@ -135,13 +121,6 @@ struct sta_info {
 
 	struct wpabuf *wps_ie; /* WPS IE from (Re)Association Request */
 	struct wpabuf *p2p_ie; /* P2P IE from (Re)Association Request */
-	struct wpabuf *hs20_ie; /* HS 2.0 IE from (Re)Association Request */
-
-	struct os_time connected_time;
-
-#ifdef CONFIG_SAE
-	struct sae_data *sae;
-#endif /* CONFIG_SAE */
 };
 
 

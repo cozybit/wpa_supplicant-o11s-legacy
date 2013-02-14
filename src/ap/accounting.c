@@ -26,6 +26,8 @@
  * input/output octets and updates Acct-{Input,Output}-Gigawords. */
 #define ACCT_DEFAULT_UPDATE_INTERVAL 300
 
+static void accounting_sta_get_id(struct hostapd_data *hapd,
+				  struct sta_info *sta);
 static void accounting_sta_interim(struct hostapd_data *hapd,
 				   struct sta_info *sta);
 
@@ -208,6 +210,7 @@ void accounting_sta_start(struct hostapd_data *hapd, struct sta_info *sta)
 	if (sta->acct_session_started)
 		return;
 
+	accounting_sta_get_id(hapd, sta);
 	hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_RADIUS,
 		       HOSTAPD_LEVEL_INFO,
 		       "starting accounting session %08X-%08X",
@@ -374,7 +377,7 @@ void accounting_sta_stop(struct hostapd_data *hapd, struct sta_info *sta)
 }
 
 
-void accounting_sta_get_id(struct hostapd_data *hapd,
+static void accounting_sta_get_id(struct hostapd_data *hapd,
 				  struct sta_info *sta)
 {
 	sta->acct_session_id_lo = hapd->acct_session_id_lo++;

@@ -1321,8 +1321,7 @@ static void wpa_driver_test_scan_timeout(void *eloop_ctx, void *timeout_ctx)
 		for (i = 0; i < drv->num_scanres; i++) {
 			struct wpa_scan_res *bss = drv->scanres[i];
 			if (p2p_scan_res_handler(drv->p2p, bss->bssid,
-						 bss->freq, bss->age,
-						 bss->level,
+						 bss->freq, bss->level,
 						 (const u8 *) (bss + 1),
 						 bss->ie_len) > 0)
 				return;
@@ -1703,6 +1702,20 @@ static int wpa_driver_test_send_disassoc(struct wpa_driver_test_data *drv)
 
 static int wpa_driver_test_deauthenticate(void *priv, const u8 *addr,
 					  int reason_code)
+{
+	struct test_driver_bss *dbss = priv;
+	struct wpa_driver_test_data *drv = dbss->drv;
+	wpa_printf(MSG_DEBUG, "%s addr=" MACSTR " reason_code=%d",
+		   __func__, MAC2STR(addr), reason_code);
+	os_memset(dbss->bssid, 0, ETH_ALEN);
+	drv->associated = 0;
+	wpa_supplicant_event(drv->ctx, EVENT_DISASSOC, NULL);
+	return wpa_driver_test_send_disassoc(drv);
+}
+
+
+static int wpa_driver_test_disassociate(void *priv, const u8 *addr,
+					int reason_code)
 {
 	struct test_driver_bss *dbss = priv;
 	struct wpa_driver_test_data *drv = dbss->drv;
@@ -2857,7 +2870,7 @@ static int wpa_driver_test_p2p_connect(void *priv, const u8 *peer_addr,
 		return -1;
 	return p2p_connect(drv->p2p, peer_addr, wps_method, go_intent,
 			   own_interface_addr, force_freq, persistent_group,
-			   NULL, 0, 0, 0);
+			   NULL, 0, 0);
 }
 
 
@@ -3286,6 +3299,7 @@ const struct wpa_driver_ops wpa_driver_test_ops = {
 	.deinit = wpa_driver_test_deinit,
 	.set_param = wpa_driver_test_set_param,
 	.deauthenticate = wpa_driver_test_deauthenticate,
+	.disassociate = wpa_driver_test_disassociate,
 	.associate = wpa_driver_test_associate,
 	.get_capa = wpa_driver_test_get_capa,
 	.get_mac_addr = wpa_driver_test_get_mac_addr,

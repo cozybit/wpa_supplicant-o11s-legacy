@@ -19,7 +19,7 @@
  * Number of retries to attempt for provision discovery requests
  * in case the peer is not listening.
  */
-#define MAX_PROV_DISC_REQ_RETRIES 120
+#define MAX_PROV_DISC_REQ_RETRIES 10
 
 
 static void p2p_build_wps_ie_config_methods(struct wpabuf *buf,
@@ -151,9 +151,8 @@ void p2p_process_prov_disc_req(struct p2p_data *p2p, const u8 *sa,
 		wpa_msg(p2p->cfg->msg_ctx, MSG_DEBUG,
 			"P2P: Provision Discovery Request from "
 			"unknown peer " MACSTR, MAC2STR(sa));
-
-		if (p2p_add_device(p2p, sa, rx_freq, 0, 0, data + 1, len - 1,
-				   0)) {
+		if (p2p_add_device(p2p, sa, rx_freq, 0, data + 1, len - 1, 0))
+		{
 			wpa_msg(p2p->cfg->msg_ctx, MSG_DEBUG,
 			        "P2P: Provision Discovery Request add device "
 				"failed " MACSTR, MAC2STR(sa));
@@ -380,6 +379,9 @@ int p2p_send_prov_disc_req(struct p2p_data *p2p, struct p2p_device *dev,
 		/* TODO: use device discoverability request through GO */
 	}
 
+	dev->dialog_token++;
+	if (dev->dialog_token == 0)
+		dev->dialog_token = 1;
 	req = p2p_build_prov_disc_req(p2p, dev->dialog_token,
 				      dev->req_config_methods,
 				      join ? dev : NULL);
@@ -406,8 +408,7 @@ int p2p_send_prov_disc_req(struct p2p_data *p2p, struct p2p_device *dev,
 
 
 int p2p_prov_disc_req(struct p2p_data *p2p, const u8 *peer_addr,
-		      u16 config_methods, int join, int force_freq,
-		      int user_initiated_pd)
+		      u16 config_methods, int join, int force_freq)
 {
 	struct p2p_device *dev;
 
@@ -445,18 +446,14 @@ int p2p_prov_disc_req(struct p2p_data *p2p, const u8 *peer_addr,
 		return 0;
 	}
 
-	p2p->user_initiated_pd = user_initiated_pd;
+	/*
+	 * We use the join param as a cue to differentiate between user
+	 * initiated PD request and one issued during finds (internal).
+	 */
+	p2p->user_initiated_pd = !join;
 
 	if (p2p->user_initiated_pd)
 		p2p->pd_retries = MAX_PROV_DISC_REQ_RETRIES;
-
-	/*
-	 * Assign dialog token here to use the same value in each retry within
-	 * the same PD exchange.
-	 */
-	dev->dialog_token++;
-	if (dev->dialog_token == 0)
-		dev->dialog_token = 1;
 
 	return p2p_send_prov_disc_req(p2p, dev, join, force_freq);
 }

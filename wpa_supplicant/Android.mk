@@ -8,13 +8,11 @@
 LOCAL_PATH := $(call my-dir)
 PKG_CONFIG ?= pkg-config
 
-WPA_BUILD_SUPPLICANT := false
 ifneq ($(BOARD_WPA_SUPPLICANT_DRIVER),)
-  WPA_BUILD_SUPPLICANT := true
   CONFIG_DRIVER_$(BOARD_WPA_SUPPLICANT_DRIVER) := y
+else
+  CONFIG_DRIVER_TEST := y
 endif
-
-ifeq ($(WPA_BUILD_SUPPLICANT),true)
 
 include $(LOCAL_PATH)/android.config
 
@@ -31,6 +29,15 @@ ifdef CONFIG_NO_ROAMING
 L_CFLAGS += -DCONFIG_NO_ROAMING
 endif
 
+ifeq ($(BOARD_WLAN_DEVICE), bcmdhd)
+L_CFLAGS += -DANDROID_P2P
+endif
+
+ifeq ($(BOARD_WLAN_DEVICE), qcwcn)
+L_CFLAGS += -DANDROID_QCOM_WCN
+L_CFLAGS += -DANDROID_P2P
+endif
+
 # Use Android specific directory for control interface sockets
 L_CFLAGS += -DCONFIG_CTRL_IFACE_CLIENT_DIR=\"/data/misc/wifi/sockets\"
 L_CFLAGS += -DCONFIG_CTRL_IFACE_DIR=\"/data/system/wpa_supplicant\"
@@ -42,9 +49,6 @@ endif
 
 # To allow non-ASCII characters in SSID
 L_CFLAGS += -DWPA_UNICODE_SSID
-
-# OpenSSL is configured without engines on Android
-L_CFLAGS += -DOPENSSL_NO_ENGINE
 
 INCLUDES = $(LOCAL_PATH)
 INCLUDES += $(LOCAL_PATH)/src
@@ -63,7 +67,6 @@ INCLUDES += $(LOCAL_PATH)/src/tls
 INCLUDES += $(LOCAL_PATH)/src/utils
 INCLUDES += $(LOCAL_PATH)/src/wps
 INCLUDES += external/openssl/include
-INCLUDES += frameworks/base/cmds/keystore
 INCLUDES += system/security/keystore
 ifdef CONFIG_DRIVER_NL80211
 INCLUDES += external/libnl-headers
@@ -128,9 +131,16 @@ endif
 OBJS += src/utils/$(CONFIG_ELOOP).c
 OBJS_c += src/utils/$(CONFIG_ELOOP).c
 
+ifdef CONFIG_ELOOP_POLL
+L_CFLAGS += -DCONFIG_ELOOP_POLL
+endif
 
 ifdef CONFIG_EAPOL_TEST
 L_CFLAGS += -Werror -DEAPOL_TEST
+endif
+
+ifdef CONFIG_HT_OVERRIDES
+L_CFLAGS += -DCONFIG_HT_OVERRIDES
 endif
 
 ifndef CONFIG_BACKEND
@@ -179,11 +189,9 @@ NEED_SHA256=y
 NEED_AES_OMAC1=y
 endif
 
-ifdef CONFIG_SAE
-L_CFLAGS += -DCONFIG_SAE
-OBJS += src/common/sae.c
-NEED_ECC=y
-NEED_DH_GROUPS=y
+ifdef CONFIG_IEEE80211V
+L_CFLAGS += -DCONFIG_IEEE80211V
+OBJS += wnm_sta.c
 endif
 
 ifdef CONFIG_TDLS
@@ -555,7 +563,7 @@ endif
 ifdef CONFIG_EAP_PWD
 L_CFLAGS += -DEAP_PWD
 OBJS += src/eap_peer/eap_pwd.c src/eap_common/eap_pwd_common.c
-OBJS_h += src/eap_server/eap_server_pwd.c
+OBJS_h += src/eap_server/eap_pwd.c
 CONFIG_IEEE8021X_EAPOL=y
 NEED_SHA256=y
 endif
@@ -587,10 +595,25 @@ NEED_80211_COMMON=y
 NEED_AES_CBC=y
 NEED_MODEXP=y
 
+ifdef CONFIG_WPS_UFD
+L_CFLAGS += -DCONFIG_WPS_UFD
+OBJS += src/wps/wps_ufd.c
+NEED_WPS_OOB=y
+endif
+
 ifdef CONFIG_WPS_NFC
 L_CFLAGS += -DCONFIG_WPS_NFC
 OBJS += src/wps/ndef.c
+OBJS += src/wps/wps_nfc.c
 NEED_WPS_OOB=y
+ifdef CONFIG_WPS_NFC_PN531
+PN531_PATH ?= /usr/local/src/nfc
+L_CFLAGS += -DCONFIG_WPS_NFC_PN531
+L_CFLAGS += -I${PN531_PATH}/inc
+OBJS += src/wps/wps_nfc_pn531.c
+LIBS += ${PN531_PATH}/lib/wpsnfc.dll
+LIBS += ${PN531_PATH}/lib/libnfc_mapping_pn53x.dll
+endif
 endif
 
 ifdef NEED_WPS_OOB
@@ -716,7 +739,6 @@ OBJS += src/ap/ieee802_11_shared.c
 OBJS += src/ap/drv_callbacks.c
 OBJS += src/ap/ap_drv_ops.c
 OBJS += src/ap/beacon.c
-OBJS += src/ap/eap_user_db.c
 ifdef CONFIG_IEEE80211N
 OBJS += src/ap/ieee802_11_ht.c
 endif
@@ -731,6 +753,10 @@ OBJS += src/eap_server/eap_server_methods.c
 
 ifdef CONFIG_IEEE80211N
 L_CFLAGS += -DCONFIG_IEEE80211N
+endif
+
+ifdef CONFIG_WNM
+L_CFLAGS += -DCONFIG_WNM
 endif
 
 ifdef NEED_AP_MLME
@@ -851,8 +877,6 @@ OBJS += src/eap_peer/eap_tls_common.c
 OBJS_h += src/eap_server/eap_server_tls_common.c
 ifndef CONFIG_FIPS
 NEED_TLS_PRF=y
-NEED_SHA1=y
-NEED_MD5=y
 endif
 endif
 
@@ -862,6 +886,11 @@ endif
 
 ifdef CONFIG_TLSV11
 L_CFLAGS += -DCONFIG_TLSV11
+endif
+
+ifdef CONFIG_TLSV12
+L_CFLAGS += -DCONFIG_TLSV12
+NEED_SHA256=y
 endif
 
 ifeq ($(CONFIG_TLS), openssl)
@@ -948,6 +977,9 @@ OBJS += src/tls/pkcs8.c
 NEED_SHA256=y
 NEED_BASE64=y
 NEED_TLS_PRF=y
+ifdef CONFIG_TLSV12
+NEED_TLS_PRF_SHA256=y
+endif
 NEED_MODEXP=y
 NEED_CIPHER=y
 L_CFLAGS += -DCONFIG_TLS_INTERNAL_CLIENT
@@ -1103,7 +1135,10 @@ SHA1OBJS += src/crypto/sha1-tlsprf.c
 endif
 endif
 
-MD5OBJS = src/crypto/md5.c
+MD5OBJS =
+ifndef CONFIG_FIPS
+MD5OBJS += src/crypto/md5.c
+endif
 ifdef NEED_MD5
 ifdef CONFIG_INTERNAL_MD5
 MD5OBJS += src/crypto/md5-internal.c
@@ -1141,6 +1176,9 @@ SHA256OBJS += src/crypto/sha256-prf.c
 ifdef CONFIG_INTERNAL_SHA256
 SHA256OBJS += src/crypto/sha256-internal.c
 endif
+ifdef NEED_TLS_PRF_SHA256
+SHA256OBJS += src/crypto/sha256-tlsprf.c
+endif
 OBJS += $(SHA256OBJS)
 endif
 
@@ -1154,10 +1192,6 @@ ifdef CONFIG_INTERNAL_DH_GROUP5
 ifdef NEED_DH_GROUPS
 OBJS += src/crypto/dh_group5.c
 endif
-endif
-
-ifdef NEED_ECC
-L_CFLAGS += -DCONFIG_ECC
 endif
 
 ifdef CONFIG_NO_RANDOM_POOL
@@ -1309,6 +1343,10 @@ L_CFLAGS += -DLOG_HOSTAPD="$(CONFIG_DEBUG_SYSLOG_FACILITY)"
 endif
 endif
 
+ifdef CONFIG_DEBUG_LINUX_TRACING
+L_CFLAGS += -DCONFIG_DEBUG_LINUX_TRACING
+endif
+
 ifdef CONFIG_DEBUG_FILE
 L_CFLAGS += -DCONFIG_DEBUG_FILE
 endif
@@ -1324,6 +1362,7 @@ endif
 OBJS += $(SHA1OBJS) $(DESOBJS)
 
 OBJS_p += $(SHA1OBJS)
+OBJS_p += $(SHA256OBJS)
 
 ifdef CONFIG_BGSCAN_SIMPLE
 L_CFLAGS += -DCONFIG_BGSCAN_SIMPLE
@@ -1360,18 +1399,18 @@ OBJS += autoscan.c
 endif
 
 ifdef CONFIG_EXT_PASSWORD_TEST
-OBJS += ../src/utils/ext_password_test.c
+OBJS += src/utils/ext_password_test.c
 L_CFLAGS += -DCONFIG_EXT_PASSWORD_TEST
 NEED_EXT_PASSWORD=y
 endif
 
 ifdef NEED_EXT_PASSWORD
-OBJS += ../src/utils/ext_password.c
+OBJS += src/utils/ext_password.c
 L_CFLAGS += -DCONFIG_EXT_PASSWORD
 endif
 
 ifdef NEED_GAS
-OBJS += ../src/common/gas.c
+OBJS += src/common/gas.c
 OBJS += gas_query.c
 L_CFLAGS += -DCONFIG_GAS
 NEED_OFFCHANNEL=y
@@ -1409,6 +1448,9 @@ OBJS_priv += src/utils/common.c
 OBJS_priv += src/utils/wpa_debug.c
 OBJS_priv += src/utils/wpabuf.c
 OBJS_priv += wpa_priv.c
+ifdef CONFIG_DRIVER_NL80211
+OBJS_priv += src/common/ieee802_11_common.c
+endif
 ifdef CONFIG_DRIVER_TEST
 OBJS_priv += $(SHA1OBJS)
 OBJS_priv += $(MD5OBJS)
@@ -1503,15 +1545,12 @@ include $(BUILD_EXECUTABLE)
 #
 #include $(CLEAR_VARS)
 #LOCAL_MODULE := wpa_supplicant.conf
-#LOCAL_MODULE_TAGS := user
 #LOCAL_MODULE_CLASS := ETC
 #LOCAL_MODULE_PATH := $(local_target_dir)
 #LOCAL_SRC_FILES := $(LOCAL_MODULE)
 #include $(BUILD_PREBUILT)
 #
 ########################
-
-endif # ifeq ($(WPA_BUILD_SUPPLICANT),true)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE = libwpa_client

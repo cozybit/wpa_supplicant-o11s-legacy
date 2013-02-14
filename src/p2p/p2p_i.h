@@ -226,14 +226,17 @@ struct p2p_data {
 	int max_disc_int;
 
 	/**
-	 * max_disc_tu - Maximum number of TUs for discoverable interval
-	 */
-	int max_disc_tu;
-
-	/**
 	 * devices - List of known P2P Device peers
 	 */
 	struct dl_list devices;
+
+#ifdef ANDROID_P2P
+	/**
+	 * sd_dev_list - device pointer to be serviced next
+	 * for service discovery
+	 */
+	struct dl_list *sd_dev_list;
+#endif
 
 	/**
 	 * go_neg_peer - Pointer to GO Negotiation peer
@@ -347,7 +350,12 @@ struct p2p_data {
 	 * srv_update_indic - Service Update Indicator for local services
 	 */
 	u16 srv_update_indic;
-
+#ifdef ANDROID_P2P
+	/**
+	 * srv_count - Registered services count
+	 */
+	u16 srv_count;
+#endif
 	struct wpabuf *sd_resp; /* Fragmented SD response */
 	u8 sd_resp_addr[ETH_ALEN];
 	u8 sd_resp_dialog_token;
@@ -692,9 +700,8 @@ struct p2p_device * p2p_add_dev_from_go_neg_req(struct p2p_data *p2p,
 						struct p2p_message *msg);
 void p2p_add_dev_info(struct p2p_data *p2p, const u8 *addr,
 		      struct p2p_device *dev, struct p2p_message *msg);
-int p2p_add_device(struct p2p_data *p2p, const u8 *addr, int freq,
-		   unsigned int age_ms, int level, const u8 *ies,
-		   size_t ies_len, int scan_res);
+int p2p_add_device(struct p2p_data *p2p, const u8 *addr, int freq, int level,
+		   const u8 *ies, size_t ies_len, int scan_res);
 struct p2p_device * p2p_get_device(struct p2p_data *p2p, const u8 *addr);
 struct p2p_device * p2p_get_device_interface(struct p2p_data *p2p,
 					     const u8 *addr);

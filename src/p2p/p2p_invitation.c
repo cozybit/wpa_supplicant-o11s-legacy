@@ -176,8 +176,8 @@ void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 			"P2P: Invitation Request from unknown peer "
 			MACSTR, MAC2STR(sa));
 
-		if (p2p_add_device(p2p, sa, rx_freq, 0, 0, data + 1, len - 1,
-				   0)) {
+		if (p2p_add_device(p2p, sa, rx_freq, 0, data + 1, len - 1, 0))
+		{
 			wpa_msg(p2p->cfg->msg_ctx, MSG_DEBUG,
 				"P2P: Invitation Request add device failed "
 				MACSTR, MAC2STR(sa));
@@ -506,7 +506,11 @@ void p2p_invitation_req_cb(struct p2p_data *p2p, int success)
 	 * channel.
 	 */
 	p2p_set_state(p2p, P2P_INVITE);
+#ifdef ANDROID_P2P
+	p2p_set_timeout(p2p, 0, 350000);
+#else
 	p2p_set_timeout(p2p, 0, 100000);
+#endif
 }
 
 
@@ -583,11 +587,17 @@ int p2p_invite(struct p2p_data *p2p, const u8 *peer, enum p2p_invite_role role,
 				force_freq);
 			return -1;
 		}
+#ifdef ANDROID_P2P
+		wpa_msg(p2p->cfg->msg_ctx, MSG_DEBUG, "Single channel list %d", p2p->op_channel);
+#endif
 		p2p->channels.reg_classes = 1;
 		p2p->channels.reg_class[0].channels = 1;
 		p2p->channels.reg_class[0].reg_class = p2p->op_reg_class;
 		p2p->channels.reg_class[0].channel[0] = p2p->op_channel;
 	} else {
+#ifdef ANDROID_P2P
+		wpa_msg(p2p->cfg->msg_ctx, MSG_DEBUG, "Full channel list");
+#endif
 		p2p->op_reg_class = p2p->cfg->op_reg_class;
 		p2p->op_channel = p2p->cfg->op_channel;
 		os_memcpy(&p2p->channels, &p2p->cfg->channels,

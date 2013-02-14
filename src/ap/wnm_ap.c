@@ -19,6 +19,7 @@
 
 #define MAX_TFS_IE_LEN  1024
 
+#ifdef CONFIG_IEEE80211V
 
 /* get the TFS IE from driver */
 static int ieee80211_11_get_tfs_ie(struct hostapd_data *hapd, const u8 *addr,
@@ -56,8 +57,8 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 	u16 wnmtfs_ie_len;
 	u8 *pos;
 	struct sta_info *sta;
-	enum wnm_oper tfs_oper = action_type == WNM_SLEEP_MODE_ENTER ?
-		WNM_SLEEP_TFS_RESP_IE_ADD : WNM_SLEEP_TFS_RESP_IE_NONE;
+	enum wnm_oper tfs_oper = action_type == 0 ? WNM_SLEEP_TFS_RESP_IE_ADD :
+		WNM_SLEEP_TFS_RESP_IE_NONE;
 
 	sta = ap_get_sta(hapd, addr);
 	if (sta == NULL) {
@@ -104,8 +105,7 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 	mgmt->u.action.u.wnm_sleep_resp.dialogtoken = dialog_token;
 	pos = (u8 *)mgmt->u.action.u.wnm_sleep_resp.variable;
 	/* add key data if MFP is enabled */
-	if (!wpa_auth_uses_mfp(sta->wpa_sm) ||
-	    action_type != WNM_SLEEP_MODE_EXIT) {
+	if (wpa_auth_uses_mfp(sta->wpa_sm) || action_type != 1){
 		mgmt->u.action.u.wnm_sleep_resp.keydata_len = 0;
 	} else {
 		gtk_elem_len = wpa_wnmsleep_gtk_subelem(sta->wpa_sm, pos);
@@ -132,8 +132,7 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 	os_memcpy(pos, &wnmsleep_ie, wnmsleep_ie_len);
 	/* copy TFS IE here */
 	pos += wnmsleep_ie_len;
-	if (wnmtfs_ie)
-		os_memcpy(pos, wnmtfs_ie, wnmtfs_ie_len);
+	os_memcpy(pos, wnmtfs_ie, wnmtfs_ie_len);
 
 	len = 1 + sizeof(mgmt->u.action.u.wnm_sleep_resp) + gtk_elem_len +
 		igtk_elem_len + wnmsleep_ie_len + wnmtfs_ie_len;
@@ -153,7 +152,7 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 		 * WNM Sleep
 		 */
 		if (wnmsleep_ie.status == WNM_STATUS_SLEEP_ACCEPT &&
-		    wnmsleep_ie.action_type == WNM_SLEEP_MODE_ENTER) {
+		    wnmsleep_ie.action_type == 0) {
 			hostapd_drv_wnm_oper(hapd, WNM_SLEEP_ENTER_CONFIRM,
 					     addr, NULL, NULL);
 			wpa_set_wnmsleep(sta->wpa_sm, 1);
@@ -163,14 +162,12 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 		 * 2. start GTK/IGTK update if MFP is not used
 		 * 3. unpause the node in driver
 		 */
-		if ((wnmsleep_ie.status == WNM_STATUS_SLEEP_ACCEPT ||
-		     wnmsleep_ie.status ==
-		     WNM_STATUS_SLEEP_EXIT_ACCEPT_GTK_UPDATE) &&
-		    wnmsleep_ie.action_type == WNM_SLEEP_MODE_EXIT) {
+		if (wnmsleep_ie.status == WNM_STATUS_SLEEP_ACCEPT &&
+		    wnmsleep_ie.action_type == 1) {
 			wpa_set_wnmsleep(sta->wpa_sm, 0);
 			hostapd_drv_wnm_oper(hapd, WNM_SLEEP_EXIT_CONFIRM,
 					     addr, NULL, NULL);
-			if (!wpa_auth_uses_mfp(sta->wpa_sm))
+			if (wpa_auth_uses_mfp(sta->wpa_sm) && action_type == 1)
 				wpa_wnmsleep_rekey_gtk(sta->wpa_sm);
 		}
 	} else
@@ -187,29 +184,29 @@ static int ieee802_11_send_wnmsleep_resp(struct hostapd_data *hapd,
 static void ieee802_11_rx_wnmsleep_req(struct hostapd_data *hapd,
 				       const u8 *addr, const u8 *frm, int len)
 {
-	/* Dialog Token [1] | WNM-Sleep Mode IE | TFS Response IE */
-	const u8 *pos = frm;
-	u8 dialog_token;
+	/*
+	 * Action [1] | Dialog Token [1] | WNM-Sleep Mode IE |
+	 * TFS Response IE
+	 */
+	u8 *pos = (u8 *) frm; /* point to action field */
+	u8 dialog_token = pos[1];
 	struct wnm_sleep_element *wnmsleep_ie = NULL;
 	/* multiple TFS Req IE (assuming consecutive) */
 	u8 *tfsreq_ie_start = NULL;
 	u8 *tfsreq_ie_end = NULL;
 	u16 tfsreq_ie_len = 0;
 
-	dialog_token = *pos++;
-	while (pos + 1 < frm + len) {
-		u8 ie_len = pos[1];
-		if (pos + 2 + ie_len > frm + len)
-			break;
+	pos += 1 + 1;
+	while (pos - frm < len - 1) {
+		u8 ie_len = *(pos+1);
 		if (*pos == WLAN_EID_WNMSLEEP)
-			wnmsleep_ie = (struct wnm_sleep_element *) pos;
+			wnmsleep_ie = (struct wnm_sleep_element *)pos;
 		else if (*pos == WLAN_EID_TFS_REQ) {
 			if (!tfsreq_ie_start)
-				tfsreq_ie_start = (u8 *) pos;
-			tfsreq_ie_end = (u8 *) pos;
+				tfsreq_ie_start = pos;
+			tfsreq_ie_end = pos;
 		} else
-			wpa_printf(MSG_DEBUG, "WNM: EID %d not recognized",
-				   *pos);
+			wpa_printf(MSG_DEBUG, "EID %d not recognized", *pos);
 		pos += ie_len + 2;
 	}
 
@@ -218,9 +215,8 @@ static void ieee802_11_rx_wnmsleep_req(struct hostapd_data *hapd,
 		return;
 	}
 
-	if (wnmsleep_ie->action_type == WNM_SLEEP_MODE_ENTER &&
-	    tfsreq_ie_start && tfsreq_ie_end &&
-	    tfsreq_ie_end - tfsreq_ie_start >= 0) {
+	if (wnmsleep_ie->action_type == 0 && tfsreq_ie_start &&
+	    tfsreq_ie_end && tfsreq_ie_end - tfsreq_ie_start >= 0) {
 		tfsreq_ie_len = (tfsreq_ie_end + tfsreq_ie_end[1] + 2) -
 			tfsreq_ie_start;
 		wpa_printf(MSG_DEBUG, "TFS Req IE(s) found");
@@ -235,7 +231,7 @@ static void ieee802_11_rx_wnmsleep_req(struct hostapd_data *hapd,
 				      wnmsleep_ie->action_type,
 				      wnmsleep_ie->intval);
 
-	if (wnmsleep_ie->action_type == WNM_SLEEP_MODE_EXIT) {
+	if (wnmsleep_ie->action_type == 1) {
 		/* clear the tfs after sending the resp frame */
 		ieee80211_11_set_tfs_ie(hapd, addr, tfsreq_ie_start,
 					&tfsreq_ie_len, WNM_SLEEP_TFS_IE_DEL);
@@ -243,29 +239,20 @@ static void ieee802_11_rx_wnmsleep_req(struct hostapd_data *hapd,
 }
 
 
-int ieee802_11_rx_wnm_action_ap(struct hostapd_data *hapd,
-				struct rx_action *action)
+void ieee802_11_rx_wnm_action_ap(struct hostapd_data *hapd,
+				 struct rx_action *action)
 {
-	if (action->len < 1 || action->data == NULL)
-		return -1;
+	u8 *pos = (u8 *) action->data + 1; /* point to the action field */
+	u8 act = *pos;
 
-	switch (action->data[0]) {
-	case WNM_BSS_TRANS_MGMT_QUERY:
-		wpa_printf(MSG_DEBUG, "WNM: BSS Transition Management Query");
-		/* TODO */
-		return -1;
-	case WNM_BSS_TRANS_MGMT_RESP:
-		wpa_printf(MSG_DEBUG, "WNM: BSS Transition Management "
-			   "Response");
-		/* TODO */
-		return -1;
+	switch (act) {
 	case WNM_SLEEP_MODE_REQ:
 		ieee802_11_rx_wnmsleep_req(hapd, action->sa, action->data + 1,
-					   action->len - 1);
-		return 0;
+					   action->len);
+		break;
+	default:
+		break;
 	}
-
-	wpa_printf(MSG_DEBUG, "WNM: Unsupported WNM Action %u from " MACSTR,
-		   action->data[0], MAC2STR(action->sa));
-	return -1;
 }
+
+#endif /* CONFIG_IEEE80211V */

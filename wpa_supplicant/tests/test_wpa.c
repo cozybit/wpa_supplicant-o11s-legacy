@@ -14,7 +14,7 @@
 #include "../config.h"
 #include "rsn_supp/wpa.h"
 #include "rsn_supp/wpa_ie.h"
-#include "ap/wpa_auth.h"
+#include "../hostapd/wpa.h"
 
 
 extern int wpa_debug_level;

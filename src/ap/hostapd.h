@@ -10,7 +10,6 @@
 #define HOSTAPD_H
 
 #include "common/defs.h"
-#include "ap_config.h"
 
 struct wpa_driver_ops;
 struct wpa_ctrl_dst;
@@ -23,9 +22,6 @@ struct ieee80211_ht_capabilities;
 struct full_dynamic_vlan;
 enum wps_event;
 union wps_event_data;
-#ifdef CONFIG_MESH
-struct mesh_conf;
-#endif
 
 struct hostapd_iface;
 
@@ -191,19 +187,6 @@ struct hostapd_data {
 #ifdef CONFIG_INTERWORKING
 	size_t gas_frag_limit;
 #endif /* CONFIG_INTERWORKING */
-#ifdef CONFIG_MESH
-	int max_num_sta;
-#endif
-
-#ifdef CONFIG_SQLITE
-	struct hostapd_eap_user tmp_eap_user;
-#endif /* CONFIG_SQLITE */
-
-#ifdef CONFIG_SAE
-	/** Key used for generating SAE anti-clogging tokens */
-	u8 sae_token_key[8];
-	os_time_t last_sae_token_key_update;
-#endif /* CONFIG_SAE */
 };
 
 
@@ -215,9 +198,6 @@ struct hostapd_iface {
 	void *owner;
 	char *config_fname;
 	struct hostapd_config *conf;
-#ifdef CONFIG_MESH
-	struct mesh_conf *mconf;
-#endif
 
 	size_t num_bss;
 	struct hostapd_data **bss;
@@ -316,9 +296,5 @@ int hostapd_probe_req_rx(struct hostapd_data *hapd, const u8 *sa, const u8 *da,
 			 int ssi_signal);
 void hostapd_event_ch_switch(struct hostapd_data *hapd, int freq, int ht,
 			     int offset);
-
-const struct hostapd_eap_user *
-hostapd_get_eap_user(struct hostapd_data *hapd, const u8 *identity,
-		     size_t identity_len, int phase2);
 
 #endif /* HOSTAPD_H */

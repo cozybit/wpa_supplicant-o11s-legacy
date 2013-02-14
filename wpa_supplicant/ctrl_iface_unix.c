@@ -166,6 +166,30 @@ static void wpa_supplicant_ctrl_iface_receive(int sock, void *eloop_ctx,
 		else
 			reply_len = 2;
 	} else {
+#if defined(CONFIG_P2P) && defined(ANDROID_P2P)
+		char *ifname, *ifend;
+
+		ifname = os_strstr(buf, "interface=");
+		if (ifname != NULL) {
+			ifend = os_strchr(ifname + 10, ' ');
+			if (ifend != NULL)
+				*ifend++ = '\0';
+			else
+				*(ifname - 1) = '\0';
+			wpa_printf(MSG_DEBUG, "Found %s", ifname);
+			for (wpa_s = wpa_s->global->ifaces; wpa_s; wpa_s = wpa_s->next) {
+				if (os_strcmp(wpa_s->ifname, ifname + 10) == 0)
+					break;
+			}
+			if (wpa_s == NULL) {
+				wpa_printf(MSG_ERROR, "P2P: %s does not exist", ifname);
+				wpa_s = eloop_ctx;
+			}
+			if (ifend != NULL)
+				os_memmove(ifname, ifend, strlen(ifend) + 1);
+			wpa_printf(MSG_INFO, "wpa_s->ifname %s cmd %s", wpa_s ? wpa_s->ifname : "NULL", buf);
+		}
+#endif /* defined CONFIG_P2P && defined ANDROID_P2P */
 		reply = wpa_supplicant_ctrl_iface_process(wpa_s, buf,
 							  &reply_len);
 	}
@@ -304,22 +328,6 @@ wpa_supplicant_ctrl_iface_init(struct wpa_supplicant *wpa_s)
 			goto fail;
 		}
 	}
-
-#ifdef ANDROID
-	/*
-	 * wpa_supplicant is started from /init.*.rc on Android and that seems
-	 * to be using umask 0077 which would leave the control interface
-	 * directory without group access. This breaks things since Wi-Fi
-	 * framework assumes that this directory can be accessed by other
-	 * applications in the wifi group. Fix this by adding group access even
-	 * if umask value would prevent this.
-	 */
-	if (chmod(dir, S_IRWXU | S_IRWXG) < 0) {
-		wpa_printf(MSG_ERROR, "CTRL: Could not chmod directory: %s",
-			   strerror(errno));
-		/* Try to continue anyway */
-	}
-#endif /* ANDROID */
 
 	if (gid_str) {
 		grp = getgrnam(gid_str);

@@ -26,6 +26,10 @@ void wpas_p2p_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 				   unsigned int freq, unsigned int duration);
 void wpas_p2p_cancel_remain_on_channel_cb(struct wpa_supplicant *wpa_s,
 					  unsigned int freq);
+#ifdef ANDROID_P2P
+int wpas_p2p_handle_frequency_conflicts(struct wpa_supplicant *wpa_s,
+                                          int freq);
+#endif
 int wpas_p2p_group_remove(struct wpa_supplicant *wpa_s, const char *ifname);
 int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 		       int freq, int ht40);
@@ -92,7 +96,11 @@ int wpas_p2p_sd_cancel_request(struct wpa_supplicant *wpa_s, u64 req);
 void wpas_p2p_sd_response(struct wpa_supplicant *wpa_s, int freq,
 			  const u8 *dst, u8 dialog_token,
 			  const struct wpabuf *resp_tlvs);
+#ifdef ANDROID_P2P
+void wpas_p2p_sd_service_update(struct wpa_supplicant *wpa_s, int action);
+#else
 void wpas_p2p_sd_service_update(struct wpa_supplicant *wpa_s);
+#endif
 void wpas_p2p_service_flush(struct wpa_supplicant *wpa_s);
 int wpas_p2p_service_add_bonjour(struct wpa_supplicant *wpa_s,
 				 struct wpabuf *query, struct wpabuf *resp);

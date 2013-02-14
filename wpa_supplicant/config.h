@@ -15,7 +15,6 @@
 #else /* CONFIG_NO_SCAN_PROCESSING */
 #define DEFAULT_AP_SCAN 1
 #endif /* CONFIG_NO_SCAN_PROCESSING */
-#define DEFAULT_USER_MPM 0
 #define DEFAULT_FAST_REAUTH 1
 #define DEFAULT_P2P_GO_INTENT 7
 #define DEFAULT_P2P_INTRA_BSS 1
@@ -197,12 +196,6 @@ struct wpa_cred {
 	 * Pre-configured EAP parameters or %NULL.
 	 */
 	char *phase2;
-
-	struct excluded_ssid {
-		u8 ssid[MAX_SSID_LEN];
-		size_t ssid_len;
-	} *excluded_ssid;
-	size_t num_excluded_ssid;
 };
 
 
@@ -269,16 +262,6 @@ struct wpa_config {
 	 * configuration value can be used to set it to the new version (2).
 	 */
 	int eapol_version;
-
-	/**
-	 * user_mpm - MPM residency
-	 *
-	 * 0: MPM lives in driver.
-	 * 1: wpa_supplicant handles peering and station allocation.
-	 *
-	 * If AMPE or SAE is enabled, the MPM is always in userspace.
-	 */
-	int user_mpm;
 
 	/**
 	 * ap_scan - AP scanning/selection
@@ -727,12 +710,12 @@ struct wpa_config {
 	struct wpabuf *wps_nfc_dh_pubkey;
 
 	/**
-	 * wps_nfc_dh_privkey - NFC DH Private Key for password token
+	 * wps_nfc_dh_pubkey - NFC DH Private Key for password token
 	 */
 	struct wpabuf *wps_nfc_dh_privkey;
 
 	/**
-	 * wps_nfc_dev_pw - NFC Device Password for password token
+	 * wps_nfc_dh_pubkey - NFC Device Password for password token
 	 */
 	struct wpabuf *wps_nfc_dev_pw;
 
@@ -764,60 +747,6 @@ struct wpa_config {
 	 *     matching network block
 	 */
 	int auto_interworking;
-
-	/**
-	 * p2p_go_ht40 - Default mode for HT40 enable when operating as GO.
-	 *
-	 * This will take effect for p2p_group_add, p2p_connect, and p2p_invite.
-	 * Note that regulatory constraints and driver capabilities are
-	 * consulted anyway, so setting it to 1 can't do real harm.
-	 * By default: 0 (disabled)
-	 */
-	int p2p_go_ht40;
-
-	/**
-	 * p2p_disabled - Whether P2P operations are disabled for this interface
-	 */
-	int p2p_disabled;
-
-	/**
-	 * p2p_no_group_iface - Whether group interfaces can be used
-	 *
-	 * By default, wpa_supplicant will create a separate interface for P2P
-	 * group operations if the driver supports this. This functionality can
-	 * be disabled by setting this parameter to 1. In that case, the same
-	 * interface that was used for the P2P management operations is used
-	 * also for the group operation.
-	 */
-	int p2p_no_group_iface;
-
-	/**
-	 * okc - Whether to enable opportunistic key caching by default
-	 *
-	 * By default, OKC is disabled unless enabled by the per-network
-	 * proactive_key_caching=1 parameter. okc=1 can be used to change this
-	 * default behavior.
-	 */
-	int okc;
-
-	/**
-	 * pmf - Whether to enable/require PMF by default
-	 *
-	 * By default, PMF is disabled unless enabled by the per-network
-	 * ieee80211w=1 or ieee80211w=2 parameter. pmf=1/2 can be used to change
-	 * this default behavior.
-	 */
-	enum mfp_options pmf;
-
-	/**
-	 * sae_groups - Preference list of enabled groups for SAE
-	 *
-	 * By default (if this parameter is not set), the mandatory group 19
-	 * (ECC group defined over a 256-bit prime order field) is preferred,
-	 * but other groups are also enabled. If this parameter is set, the
-	 * groups will be tried in the indicated order.
-	 */
-	int *sae_groups;
 };
 
 

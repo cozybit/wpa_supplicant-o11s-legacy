@@ -54,12 +54,11 @@ static const int dot11RSNAConfigPMKReauthThreshold = 70;
 static const int dot11RSNAConfigSATimeout = 60;
 
 
-static inline int wpa_auth_mic_failure_report(
+static inline void wpa_auth_mic_failure_report(
 	struct wpa_authenticator *wpa_auth, const u8 *addr)
 {
 	if (wpa_auth->cb.mic_failure_report)
-		return wpa_auth->cb.mic_failure_report(wpa_auth->cb.ctx, addr);
-	return 0;
+		wpa_auth->cb.mic_failure_report(wpa_auth->cb.ctx, addr);
 }
 
 
@@ -282,9 +281,8 @@ static void wpa_auth_pmksa_free_cb(struct rsn_pmksa_cache_entry *entry,
 static int wpa_group_init_gmk_and_counter(struct wpa_authenticator *wpa_auth,
 					  struct wpa_group *group)
 {
-	u8 buf[ETH_ALEN + 8 + sizeof(unsigned long)];
+	u8 buf[ETH_ALEN + 8 + sizeof(group)];
 	u8 rkey[32];
-	unsigned long ptr;
 
 	if (random_get_bytes(group->GMK, WPA_GMK_LEN) < 0)
 		return -1;
@@ -296,8 +294,7 @@ static int wpa_group_init_gmk_and_counter(struct wpa_authenticator *wpa_auth,
 	 */
 	os_memcpy(buf, wpa_auth->addr, ETH_ALEN);
 	wpa_get_ntp_timestamp(buf + ETH_ALEN);
-	ptr = (unsigned long) group;
-	os_memcpy(buf + ETH_ALEN + 8, &ptr, sizeof(ptr));
+	os_memcpy(buf + ETH_ALEN + 8, &group, sizeof(group));
 	if (random_get_bytes(rkey, sizeof(rkey)) < 0)
 		return -1;
 
@@ -703,8 +700,8 @@ static int ft_check_msg_2_of_4(struct wpa_authenticator *wpa_auth,
 #endif /* CONFIG_IEEE80211R */
 
 
-static int wpa_receive_error_report(struct wpa_authenticator *wpa_auth,
-				    struct wpa_state_machine *sm, int group)
+static void wpa_receive_error_report(struct wpa_authenticator *wpa_auth,
+				     struct wpa_state_machine *sm, int group)
 {
 	/* Supplicant reported a Michael MIC error */
 	wpa_auth_vlogger(wpa_auth, sm->addr, LOGGER_INFO,
@@ -721,8 +718,7 @@ static int wpa_receive_error_report(struct wpa_authenticator *wpa_auth,
 				"ignore Michael MIC failure report since "
 				"pairwise cipher is not TKIP");
 	} else {
-		if (wpa_auth_mic_failure_report(wpa_auth, sm->addr) > 0)
-			return 1; /* STA entry was removed */
+		wpa_auth_mic_failure_report(wpa_auth, sm->addr);
 		sm->dot11RSNAStatsTKIPRemoteMICFailures++;
 		wpa_auth->dot11RSNAStatsTKIPRemoteMICFailures++;
 	}
@@ -732,7 +728,6 @@ static int wpa_receive_error_report(struct wpa_authenticator *wpa_auth,
 	 * Authenticator may do it, let's change the keys now anyway.
 	 */
 	wpa_request_new_ptk(sm);
-	return 0;
 }
 
 
@@ -1086,10 +1081,9 @@ continue_processing:
 #endif /* CONFIG_PEERKEY */
 			return;
 		} else if (key_info & WPA_KEY_INFO_ERROR) {
-			if (wpa_receive_error_report(
-				    wpa_auth, sm,
-				    !(key_info & WPA_KEY_INFO_KEY_TYPE)) > 0)
-				return; /* STA entry was removed */
+			wpa_receive_error_report(
+				wpa_auth, sm,
+				!(key_info & WPA_KEY_INFO_KEY_TYPE));
 		} else if (key_info & WPA_KEY_INFO_KEY_TYPE) {
 			wpa_auth_logger(wpa_auth, sm->addr, LOGGER_INFO,
 					"received EAPOL-Key Request for new "
@@ -2415,9 +2409,11 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 				"marking station for GTK rekeying");
 	}
 
-	/* Do not rekey GTK/IGTK when STA is in WNM-Sleep Mode */
+#ifdef CONFIG_IEEE80211V
+	/* Do not rekey GTK/IGTK when STA is in wnmsleep */
 	if (sm->is_wnmsleep)
 		return 0;
+#endif /* CONFIG_IEEE80211V */
 
 	sm->group->GKeyDoneStations++;
 	sm->GUpdateStationKeys = TRUE;
@@ -2427,8 +2423,8 @@ static int wpa_group_update_sta(struct wpa_state_machine *sm, void *ctx)
 }
 
 
-#ifdef CONFIG_WNM
-/* update GTK when exiting WNM-Sleep Mode */
+#ifdef CONFIG_IEEE80211V
+/* update GTK when exiting wnmsleep mode */
 void wpa_wnmsleep_rekey_gtk(struct wpa_state_machine *sm)
 {
 	if (sm->is_wnmsleep)
@@ -2446,65 +2442,111 @@ void wpa_set_wnmsleep(struct wpa_state_machine *sm, int flag)
 
 int wpa_wnmsleep_gtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 {
+	u8 *subelem;
 	struct wpa_group *gsm = sm->group;
-	u8 *start = pos;
+	size_t subelem_len, pad_len;
+	const u8 *key;
+	size_t key_len;
+	u8 keybuf[32];
+
+	/* GTK subslement */
+	key_len = gsm->GTK_len;
+	if (key_len > sizeof(keybuf))
+		return 0;
 
 	/*
-	 * GTK subelement:
-	 * Sub-elem ID[1] | Length[1] | Key Info[2] | Key Length[1] | RSC[8] |
-	 * Key[5..32]
+	 * Pad key for AES Key Wrap if it is not multiple of 8 bytes or is less
+	 * than 16 bytes.
 	 */
-	*pos++ = WNM_SLEEP_SUBELEM_GTK;
-	*pos++ = 11 + gsm->GTK_len;
-	/* Key ID in B0-B1 of Key Info */
-	WPA_PUT_LE16(pos, gsm->GN & 0x03);
-	pos += 2;
-	*pos++ = gsm->GTK_len;
-	if (wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN, pos) != 0)
+	pad_len = key_len % 8;
+	if (pad_len)
+		pad_len = 8 - pad_len;
+	if (key_len + pad_len < 16)
+		pad_len += 8;
+	if (pad_len) {
+		os_memcpy(keybuf, gsm->GTK[gsm->GN - 1], key_len);
+		os_memset(keybuf + key_len, 0, pad_len);
+		keybuf[key_len] = 0xdd;
+		key_len += pad_len;
+		key = keybuf;
+	} else
+		key = gsm->GTK[gsm->GN - 1];
+
+	/*
+	 * Sub-elem ID[1] | Length[1] | Key Info[2] | Key Length[1] | RSC[8] |
+	 * Key[5..32] | 8 padding.
+	 */
+	subelem_len = 13 + key_len + 8;
+	subelem = os_zalloc(subelem_len);
+	if (subelem == NULL)
 		return 0;
-	pos += 8;
-	os_memcpy(pos, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
-	pos += gsm->GTK_len;
 
-	wpa_printf(MSG_DEBUG, "WNM: GTK Key ID %u in WNM-Sleep Mode exit",
-		   gsm->GN);
-	wpa_hexdump_key(MSG_DEBUG, "WNM: GTK in WNM-Sleep Mode exit",
+	subelem[0] = WNM_SLEEP_SUBELEM_GTK;
+	subelem[1] = 11 + key_len + 8;
+	/* Key ID in B0-B1 of Key Info */
+	WPA_PUT_LE16(&subelem[2], gsm->GN & 0x03);
+	subelem[4] = gsm->GTK_len;
+	if (wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN, subelem + 5) != 0)
+	{
+		os_free(subelem);
+		return 0;
+	}
+	if (aes_wrap(sm->PTK.kek, key_len / 8, key, subelem + 13)) {
+		os_free(subelem);
+		return 0;
+	}
+
+	os_memcpy(pos, subelem, subelem_len);
+
+	wpa_hexdump_key(MSG_DEBUG, "Plaintext GTK",
 			gsm->GTK[gsm->GN - 1], gsm->GTK_len);
+	os_free(subelem);
 
-	return pos - start;
+	return subelem_len;
 }
 
 
 #ifdef CONFIG_IEEE80211W
 int wpa_wnmsleep_igtk_subelem(struct wpa_state_machine *sm, u8 *pos)
 {
+	u8 *subelem, *ptr;
 	struct wpa_group *gsm = sm->group;
-	u8 *start = pos;
+	size_t subelem_len;
 
-	/*
-	 * IGTK subelement:
-	 * Sub-elem ID[1] | Length[1] | KeyID[2] | PN[6] | Key[16]
-	 */
-	*pos++ = WNM_SLEEP_SUBELEM_IGTK;
-	*pos++ = 2 + 6 + WPA_IGTK_LEN;
-	WPA_PUT_LE16(pos, gsm->GN_igtk);
-	pos += 2;
-	if (wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN_igtk, pos) != 0)
+	/* IGTK subelement
+	 * Sub-elem ID[1] | Length[1] | KeyID[2] | PN[6] |
+	 * Key[16] | 8 padding */
+	subelem_len = 1 + 1 + 2 + 6 + WPA_IGTK_LEN + 8;
+	subelem = os_zalloc(subelem_len);
+	if (subelem == NULL)
 		return 0;
-	pos += 6;
 
-	os_memcpy(pos, gsm->IGTK[gsm->GN_igtk - 4], WPA_IGTK_LEN);
-	pos += WPA_IGTK_LEN;
+	ptr = subelem;
+	*ptr++ = WNM_SLEEP_SUBELEM_IGTK;
+	*ptr++ = subelem_len - 2;
+	WPA_PUT_LE16(ptr, gsm->GN_igtk);
+	ptr += 2;
+	if (wpa_auth_get_seqnum(sm->wpa_auth, NULL, gsm->GN_igtk, ptr) != 0) {
+		os_free(subelem);
+		return 0;
+	}
+	ptr += 6;
+	if (aes_wrap(sm->PTK.kek, WPA_IGTK_LEN / 8,
+		     gsm->IGTK[gsm->GN_igtk - 4], ptr)) {
+		os_free(subelem);
+		return -1;
+	}
 
-	wpa_printf(MSG_DEBUG, "WNM: IGTK Key ID %u in WNM-Sleep Mode exit",
-		   gsm->GN_igtk);
-	wpa_hexdump_key(MSG_DEBUG, "WNM: IGTK in WNM-Sleep Mode exit",
+	os_memcpy(pos, subelem, subelem_len);
+
+	wpa_hexdump_key(MSG_DEBUG, "Plaintext IGTK",
 			gsm->IGTK[gsm->GN_igtk - 4], WPA_IGTK_LEN);
+	os_free(subelem);
 
-	return pos - start;
+	return subelem_len;
 }
 #endif /* CONFIG_IEEE80211W */
-#endif /* CONFIG_WNM */
+#endif /* CONFIG_IEEE80211V */
 
 
 static void wpa_group_setkeys(struct wpa_authenticator *wpa_auth,
@@ -3013,12 +3055,4 @@ void wpa_auth_eapol_key_tx_status(struct wpa_authenticator *wpa_auth,
 				       (timeout_ms % 1000) * 1000,
 				       wpa_send_eapol_timeout, wpa_auth, sm);
 	}
-}
-
-
-int wpa_auth_uses_sae(struct wpa_state_machine *sm)
-{
-	if (sm == NULL)
-		return 0;
-	return wpa_key_mgmt_sae(sm->wpa_key_mgmt);
 }

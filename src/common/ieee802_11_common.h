@@ -1,6 +1,6 @@
 /*
  * IEEE 802.11 Common routines
- * Copyright (c) 2002-2012, Jouni Malinen <j@w1.fi>
+ * Copyright (c) 2002-2009, Jouni Malinen <j@w1.fi>
  *
  * This software may be distributed under the terms of the BSD license.
  * See README for more details.
@@ -33,9 +33,6 @@ struct ieee802_11_elems {
 	const u8 *timeout_int;
 	const u8 *ht_capabilities;
 	const u8 *ht_operation;
-	const u8 *mesh_config;
-	const u8 *mesh_id;
-	const u8 *peer_mgmt;
 	const u8 *vht_capabilities;
 	const u8 *vht_operation;
 	const u8 *vendor_ht_cap;
@@ -46,7 +43,6 @@ struct ieee802_11_elems {
 	const u8 *hs20;
 	const u8 *ext_capab;
 	const u8 *bss_max_idle_period;
-	const u8 *ssid_list;
 
 	u8 ssid_len;
 	u8 supp_rates_len;
@@ -70,9 +66,6 @@ struct ieee802_11_elems {
 	u8 timeout_int_len;
 	u8 ht_capabilities_len;
 	u8 ht_operation_len;
-	u8 mesh_config_len;
-	u8 mesh_id_len;
-	u8 peer_mgmt_len;
 	u8 vht_capabilities_len;
 	u8 vht_operation_len;
 	u8 vendor_ht_cap_len;
@@ -81,7 +74,6 @@ struct ieee802_11_elems {
 	u8 interworking_len;
 	u8 hs20_len;
 	u8 ext_capab_len;
-	u8 ssid_list_len;
 };
 
 typedef enum { ParseOK = 0, ParseUnknown = 1, ParseFailed = -1 } ParseRes;
