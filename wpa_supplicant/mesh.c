@@ -66,8 +66,9 @@ mesh_config_create(struct wpa_ssid *ssid)
 	os_memcpy(conf->meshid, ssid->ssid, ssid->ssid_len);
 	conf->meshid_len = ssid->ssid_len;
 
-	if (ssid->auth_alg & WPA_AUTH_ALG_SAE)
-		conf->security |= MESH_CONF_SEC_AUTH;
+	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE)
+		conf->security |= MESH_CONF_SEC_AUTH |
+				  MESH_CONF_SEC_AMPE;
 	else
 		conf->security |= MESH_CONF_SEC_NONE;
 
@@ -83,7 +84,7 @@ mesh_config_create(struct wpa_ssid *ssid)
 	conf->mesh_auth_id = 0;
 
 	/* TODO: fill this in */
-	if (conf->security & MESH_CONF_SEC_AUTH) {
+	if (conf->security != MESH_CONF_SEC_NONE) {
 		conf->ies = os_zalloc(2);
 		if (!conf->ies)
 			goto out_free;
@@ -253,7 +254,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 		params.conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
 	}
 
-	if (ssid->auth_alg & WPA_AUTH_ALG_SAE)
+	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE)
 		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
 
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
