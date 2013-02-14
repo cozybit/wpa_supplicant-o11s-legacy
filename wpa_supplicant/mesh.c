@@ -5,32 +5,14 @@
  *
  * All rights reserved.
  */
-
-#include "utils/includes.h"
-
-#include "utils/common.h"
-#include "utils/eloop.h"
-#include "utils/uuid.h"
-#include "common/ieee802_11_defs.h"
-#include "common/wpa_ctrl.h"
-#include "common/ieee802_11_defs.h"
-#include "config_ssid.h"
-#include "config.h"
-#include "wpa_supplicant_i.h"
-#include "driver_i.h"
 #include "mesh.h"
-#include "mesh_mpm.h"
-#include "notify.h"
-
-#include "ap/hostapd.h"
-#include "ap/ieee802_11.h"
-
 
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
 	wpa_supplicant_mesh_iface_deinit(wpa_s->ifmsh);
 	wpa_s->ifmsh = NULL;
+	os_free(wpa_s->mesh_rsn);
 	/* TODO: leave mesh (stop beacon). This will happen on link down
 	 * anyway, so it's not urgent */
 	return;
@@ -43,9 +25,9 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 		return;
 
 	if (ifmsh->mconf) {
-		os_free(ifmsh->mconf);
 		if (ifmsh->mconf->ies)
 			os_free(ifmsh->mconf->ies);
+		os_free(ifmsh->mconf);
 	}
 
 	mesh_mpm_deinit(ifmsh);
@@ -83,22 +65,7 @@ mesh_config_create(struct wpa_ssid *ssid)
 	 * net/mac80211/mesh.c:ieee80211_start_mesh()*/
 	conf->mesh_auth_id = 0;
 
-	/* TODO: fill this in */
-	if (conf->security != MESH_CONF_SEC_NONE) {
-		conf->ies = os_zalloc(2);
-		if (!conf->ies)
-			goto out_free;
-
-		conf->ies[0] = WLAN_EID_RSN;
-		conf->ies[1] = 0;
-		conf->ie_len = 2;
-	}
-
 	return conf;
-out_free:
-	os_free (conf->ies);
-	os_free (conf);
-	return NULL;
 }
 
 static int
@@ -153,6 +120,12 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	if (!mconf)
 		goto out_free;
 	ifmsh->mconf = mconf;
+
+	if (mconf->security != MESH_CONF_SEC_NONE) {
+		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
+		if (!wpa_s->mesh_rsn)
+			goto out_free;
+	}
 
 	/* need conf->hw_mode for supported rates. */
 	/* c.f. wpa_supplicant/ap.c:wpa_supplicant_conf_ap() */

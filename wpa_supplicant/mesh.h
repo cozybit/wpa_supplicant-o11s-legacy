@@ -8,8 +8,22 @@
 
 #ifndef MESH_H
 #define MESH_H
+#include "utils/includes.h"
+
+#include "utils/common.h"
+#include "utils/eloop.h"
+#include "utils/uuid.h"
+#include "common/ieee802_11_defs.h"
+#include "common/wpa_ctrl.h"
+#include "common/ieee802_11_defs.h"
+#include "config_ssid.h"
+#include "config.h"
+#include "wpa_supplicant_i.h"
+#include "driver_i.h"
+#include "notify.h"
 
 #include "ap/hostapd.h"
+#include "ap/ieee802_11.h"
 
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 			     struct wpa_ssid *ssid);

@@ -224,7 +224,7 @@ endif
 ifdef CONFIG_MESH
 NEED_80211_COMMON=y
 CFLAGS += -DCONFIG_MESH
-OBJS += mesh.o mesh_mpm.o
+OBJS += mesh.o mesh_mpm.o mesh_rsn.o
 endif
 
 ifdef CONFIG_P2P
