@@ -199,6 +199,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 {
 	struct hostapd_sta_add_params params;
 	/* struct wmm_information_element *wmm; */
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
 	struct sta_info *sta = ap_sta_add(data, addr);
 
@@ -234,15 +235,20 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* TODO: HT capabilities */
 	/* TODO: flags? drv_flags? */
 	params.flags |= WPA_STA_WMM;
-	/* XXX: hardcode open mesh for now, and nl80211 authenticates station
-	 * by default */
-	params.flags |= WPA_STA_AUTHORIZED;
+	params.flags_mask |= WPA_STA_AUTHENTICATED;
+	if (conf->security == MESH_CONF_SEC_NONE) {
+		params.flags |= WPA_STA_AUTHORIZED;
+		params.flags |= WPA_STA_AUTHENTICATED;
+	}
 	//params.qosinfo = sta->qosinfo;
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(addr), ret);
 
-	mesh_mpm_plink_open(wpa_s, sta);
+	if (conf->security == MESH_CONF_SEC_NONE)
+		mesh_mpm_plink_open(wpa_s, sta);
+	else
+		/* start SAE */;
 }
 
 static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
