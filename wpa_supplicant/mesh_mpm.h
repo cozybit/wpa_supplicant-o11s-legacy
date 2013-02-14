@@ -1,5 +1,6 @@
 #ifndef MESH_MPM_H
 #define MESH_MPM_H
+#include "mesh.h"
 
 /* notify MPM of new mesh peer to be inserted in MPM and driver */
 void

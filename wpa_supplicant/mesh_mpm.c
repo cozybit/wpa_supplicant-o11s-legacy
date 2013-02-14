@@ -185,7 +185,6 @@ void
 mesh_mpm_deinit(struct hostapd_iface *ifmsh)
 {
 	struct hostapd_data *data = ifmsh->bss[0];
-	int i;
 
 	/* TODO: notify peers we're leaving */
 	/* TODO: deregister frames and events */
