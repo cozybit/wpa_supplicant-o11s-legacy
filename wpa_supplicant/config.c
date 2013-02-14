@@ -747,6 +747,8 @@ static int wpa_config_parse_auth_alg(const struct parse_data *data,
 			val |= WPA_AUTH_ALG_SHARED;
 		else if (os_strcmp(start, "LEAP") == 0)
 			val |= WPA_AUTH_ALG_LEAP;
+		else if (os_strcmp(start, "SAE") == 0)
+			val |= WPA_AUTH_ALG_SAE;
 		else {
 			wpa_printf(MSG_ERROR, "Line %d: invalid auth_alg '%s'",
 				   line, start);
