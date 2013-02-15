@@ -32,6 +32,8 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 
 	mesh_mpm_deinit(ifmsh);
 	/* take care of shared data */
+	/* FIX: ugly failures when NA to mesh */
+	hostapd_interface_deinit(ifmsh);
 	hostapd_interface_free(ifmsh);
 	return;
 }
@@ -165,15 +167,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			  basic_rates_erp, sizeof(basic_rates_erp));
 	}
 
-	/* XXX: we could use hostapd_setup_interface(), except the mesh
-	 * interface returns -EBUSY when attempting to set the frequency, so
-	 * instead duplicate the parts we want here. */
-	if (hostapd_get_hw_features(ifmsh))
-		goto out_free;
-	if (hostapd_select_hw_mode(ifmsh))
-		goto out_free;
-	if (hostapd_prepare_rates(ifmsh, ifmsh->current_mode))
-		goto out_free;
+	hostapd_setup_interface(ifmsh);
 
 	return 0;
 out_free:
