@@ -3,26 +3,9 @@
  *
  * All right reserved.
  */
-#include "utils/includes.h"
-
-#include "utils/common.h"
-#include "utils/eloop.h"
-#include "utils/uuid.h"
-#include "common/ieee802_11_defs.h"
-#include "common/wpa_ctrl.h"
-#include "common/ieee802_11_defs.h"
-#include "config_ssid.h"
-#include "config.h"
-#include "wpa_supplicant_i.h"
-#include "driver_i.h"
-#include "mesh.h"
 #include "mesh_mpm.h"
-#include "notify.h"
-#include "eloop.h"
-#include "ap/sta_info.h"
-#include "ap/hostapd.h"
-#include "ap/ieee802_11.h"
 
+#include "eloop.h"
 
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta);
@@ -240,14 +223,16 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		params.flags |= WPA_STA_AUTHENTICATED;
 	}
 	//params.qosinfo = sta->qosinfo;
-	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
+	if ((ret = wpa_drv_sta_add(wpa_s, &params))) {
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(addr), ret);
+		return;
+	}
 
 	if (conf->security == MESH_CONF_SEC_NONE)
 		mesh_mpm_plink_open(wpa_s, sta);
 	else
-		/* start SAE */;
+		mesh_rsn_auth_sae_sta(wpa_s, sta);
 }
 
 static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
@@ -704,4 +689,3 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	}
 	mesh_mpm_fsm(wpa_s, sta, event);
 }
-

@@ -59,7 +59,6 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 			       1, seq, 6, key, key_len);
 }
 
-
 static int
 __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 {
@@ -93,6 +92,8 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 		return -1;
 	}
 
+	/* XXX: init sae things here */
+
 	wpa_init_keys(rsn->auth);
 
 	return 0;
@@ -122,4 +123,21 @@ struct mesh_rsn *mesh_rsn_auth_init(struct wpa_supplicant *wpa_s,
 	conf->ie_len = mesh_rsn->auth->wpa_ie_len;
 
 	return mesh_rsn;
+}
+
+int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
+			  struct sta_info *sta)
+{
+	if (!sta->sae) {
+		sta->sae = os_zalloc(sizeof(*sta->sae));
+		if (sta->sae == NULL)
+			return -1;
+	}
+
+	sta->sae->state = SAE_NOTHING;
+	sta->sae->send_confirm = 0;
+	wpa_msg(wpa_s, MSG_DEBUG,
+		"AUTH: initializing authentication with SAE peer: "
+		MACSTR, MAC2STR(sta->addr));
+	return 0;
 }
