@@ -22,6 +22,7 @@
 #include "driver_i.h"
 #include "notify.h"
 
+#include "ap/sta_info.h"
 #include "ap/hostapd.h"
 #include "ap/ieee802_11.h"
 
