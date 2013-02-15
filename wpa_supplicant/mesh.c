@@ -6,6 +6,7 @@
  * All rights reserved.
  */
 #include "mesh.h"
+#include "mesh_rsn.h"
 
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
