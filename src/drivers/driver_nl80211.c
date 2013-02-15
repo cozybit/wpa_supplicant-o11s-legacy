@@ -3490,6 +3490,7 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 	drv->first_bss.ifindex = drv->ifindex;
 
 #ifndef HOSTAPD
+#ifndef CONFIG_MESH
 	/*
 	 * Make sure the interface starts up in station mode unless this is a
 	 * dynamically added interface (e.g., P2P) that was already configured
@@ -3518,6 +3519,7 @@ wpa_driver_nl80211_finish_drv_init(struct wpa_driver_nl80211_data *drv)
 
 	netlink_send_oper_ifla(drv->global->netlink, drv->ifindex,
 			       1, IF_OPER_DORMANT);
+#endif /* CONFIG_MESH */
 #endif /* HOSTAPD */
 
 	if (wpa_driver_nl80211_capa(drv))
