@@ -477,16 +477,28 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 					   MAC2STR(sta->addr));
 				data = auth_build_token_req(hapd, sta->addr);
 				resp = WLAN_STATUS_ANTI_CLOGGING_TOKEN_REQ;
-			} else {
+			} else if (sta->sae->state != SAE_COMMITTED) {
 				data = auth_process_sae_commit(hapd, sta);
 				if (data == NULL)
 					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 				else
 					sta->sae->state = SAE_COMMITTED;
+			} else if (sae_process_commit(sta->sae) < 0) {
+					wpa_printf(MSG_DEBUG,
+					 "SAE: Failed to process peer commit");
+					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			} else {
+				data = auth_build_sae_confirm(hapd, sta);
+				if (data == NULL)
+					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				else {
+					sta->sae->state = SAE_CONFIRMED;
+					auth_transaction = 2;
+				}
 			}
 		}
 	} else if (auth_transaction == 2) {
-		if (sta->sae->state != SAE_COMMITTED) {
+		if (sta->sae->state < SAE_COMMITTED) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_DEBUG,
@@ -506,6 +518,13 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 			sta->auth_alg = WLAN_AUTH_SAE;
 			mlme_authenticate_indication(hapd, sta);
+
+			/* already confirmed */
+			if (sta->sae->state == SAE_CONFIRMED) {
+				sta->sae->state = SAE_ACCEPTED;
+				sae_clear_temp_data(sta->sae);
+				return;
+			}
 
 			data = auth_build_sae_confirm(hapd, sta);
 			if (data == NULL)
