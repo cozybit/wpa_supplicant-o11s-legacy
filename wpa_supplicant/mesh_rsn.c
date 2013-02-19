@@ -138,11 +138,7 @@ static int index_within_array(const int *array, int idx)
 static int mesh_rsn_sae_group(struct wpa_supplicant *wpa_s,
 			      struct sae_data *sae)
 {
-	int *groups = wpa_s->conf->sae_groups;
-	int default_groups[] = { 19, 20, 21, 25, 26 };
-
-	if (!groups)
-		groups = default_groups;
+	int *groups = wpa_s->ifmsh->bss[0]->conf->sae_groups;
 
 	/* Configuration may have changed, so validate current index */
 	if (!index_within_array(groups, wpa_s->mesh_rsn->sae_group_index))
