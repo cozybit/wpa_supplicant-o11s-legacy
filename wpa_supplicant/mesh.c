@@ -80,6 +80,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	struct hostapd_config *conf;
 	struct mesh_conf *mconf;
 	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
+	static int default_groups[] = { 19, 20, 21, 25, 26 };
 
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
@@ -117,6 +118,17 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	bss->conf = conf->bss;
 	bss->iconf = conf;
 	ifmsh->conf = conf;
+
+	/* hook into AP auth functions */
+	if (wpa_key_mgmt_wpa_psk(ssid->key_mgmt)) {
+		bss->conf->wpa = ssid->proto;
+		bss->conf->wpa_key_mgmt = ssid->key_mgmt;
+		bss->conf->sae_groups = wpa_s->conf->sae_groups;
+		if (!bss->conf->sae_groups)
+			bss->conf->sae_groups = default_groups;
+		bss->conf->ssid.wpa_passphrase = ssid->passphrase;
+	}
+
 	ifmsh->bss[0]->max_num_sta = 10;
 
 	mconf = mesh_config_create(ssid);
