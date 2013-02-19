@@ -136,12 +136,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 	ifmsh->mconf = mconf;
 
-	if (mconf->security != MESH_CONF_SEC_NONE) {
-		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
-		if (!wpa_s->mesh_rsn)
-			goto out_free;
-	}
-
 	/* need conf->hw_mode for supported rates. */
 	/* c.f. wpa_supplicant/ap.c:wpa_supplicant_conf_ap() */
 	if (ssid->frequency == 0) {
@@ -181,6 +175,12 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	}
 
 	hostapd_setup_interface(ifmsh);
+
+	if (mconf->security != MESH_CONF_SEC_NONE) {
+		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
+		if (!wpa_s->mesh_rsn)
+			goto out_free;
+	}
 
 	return 0;
 out_free:

@@ -43,20 +43,9 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 	}
 	wpa_hexdump_key(MSG_DEBUG, "AUTH: set_key - key", key, key_len);
 
-	if (idx == 0) {
-		/*
-		 * In IBSS RSN, the pairwise key from the 4-way handshake
-		 * initiated by the peer with highest MAC address is used.
-		 */
-		if (addr == NULL ||
-		    os_memcmp(mesh_rsn->wpa_s->own_addr, addr, ETH_ALEN) < 0) {
-			wpa_printf(MSG_DEBUG, "AUTH: Do not use this PTK");
-			return 0;
-		}
-	}
-
 	return wpa_drv_set_key(mesh_rsn->wpa_s, alg, addr, idx,
 			       1, seq, 6, key, key_len);
+	/* TODO: mark as authenticated and initiate peering */
 }
 
 static int
@@ -108,6 +97,7 @@ struct mesh_rsn *mesh_rsn_auth_init(struct wpa_supplicant *wpa_s,
 				    struct mesh_conf *conf)
 {
 	struct mesh_rsn *mesh_rsn;
+	struct hostapd_data *bss = wpa_s->ifmsh->bss[0];
 
 	mesh_rsn = os_zalloc(sizeof(*mesh_rsn));
 	if (mesh_rsn == NULL)
@@ -119,8 +109,12 @@ struct mesh_rsn *mesh_rsn_auth_init(struct wpa_supplicant *wpa_s,
 		return NULL;
 	}
 
+	bss->wpa_auth = mesh_rsn->auth;
+
 	conf->ies = mesh_rsn->auth->wpa_ie;
 	conf->ie_len = mesh_rsn->auth->wpa_ie_len;
+
+	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
 
 	return mesh_rsn;
 }
@@ -247,7 +241,6 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 		if (sta->sae == NULL)
 			return -1;
 		sta->sae->state = SAE_NOTHING;
-		sta->sae->send_confirm = 0;
 	}
 
 	buf = mesh_rsn_build_sae_commit(wpa_s, ssid, sta);
@@ -260,11 +253,7 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 		"AUTH: started authentication with SAE peer: "
 		MACSTR, MAC2STR(sta->addr));
 
-	/* probably do this */
-	/*
 	wpa_supplicant_set_state(wpa_s, WPA_AUTHENTICATING);
-	wpa_supplicant_rsn_supp_set_config(wpa_s, wpa_s->current_ssid);
-	*/
 
 	mesh_rsn_send_auth(wpa_s, sta->addr, wpa_s->own_addr,
 			   SAE_COMMITTED, WLAN_STATUS_SUCCESS, buf);
