@@ -746,6 +746,17 @@ static void handle_auth(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_SAE
 	case WLAN_AUTH_SAE:
+#ifdef CONFIG_MESH
+		if (sta->wpa_sm == NULL)
+			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
+							sta->addr);
+		if (sta->wpa_sm == NULL) {
+			wpa_printf(MSG_DEBUG, "FT: Failed to initialize WPA "
+				   "state machine");
+			resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			goto fail;
+		}
+#endif
 		handle_auth_sae(hapd, sta, mgmt, len, auth_transaction);
 		return;
 #endif /* CONFIG_SAE */
