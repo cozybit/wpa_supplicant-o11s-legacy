@@ -176,6 +176,40 @@ mesh_mpm_deinit(struct hostapd_iface *ifmsh)
 	hostapd_free_stas(data);
 }
 
+/* for mesh_rsn to indicate this peer has completed authentication, and we're
+ * ready to start AMPE */
+void
+mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
+{
+	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
+	struct hostapd_sta_add_params params;
+	struct sta_info *sta;
+	int ret;
+
+	sta = ap_get_sta(data, addr);
+	if (!sta) {
+		wpa_msg(wpa_s, MSG_ERROR, "no such mesh peer!\n");
+		return;
+	}
+
+	/* TODO: should do nothing if this sta is already authenticated, but
+	 * the AP code already sets this flag. */
+	sta->flags |= WLAN_STA_AUTH;
+
+	os_memset(&params, 0, sizeof(params));
+	params.addr = sta->addr;
+	params.flags = (WPA_STA_AUTHENTICATED | WPA_STA_AUTHORIZED);
+	params.set = 1;
+
+	wpa_msg(wpa_s, MSG_DEBUG, "MPM authenticating " MACSTR,
+				  MAC2STR(sta->addr));
+	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
+		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
+			MAC2STR(sta->addr), ret);
+
+	mesh_mpm_plink_open(wpa_s, sta);
+}
+
 void
 wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		       struct ieee802_11_elems *elems)

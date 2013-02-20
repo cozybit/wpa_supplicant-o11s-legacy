@@ -45,7 +45,17 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 
 	return wpa_drv_set_key(mesh_rsn->wpa_s, alg, addr, idx,
 			       1, seq, 6, key, key_len);
-	/* TODO: mark as authenticated and initiate peering */
+}
+
+static int auth_start_ampe(void *ctx, const u8 *addr)
+{
+	struct mesh_rsn *mesh_rsn = ctx;
+
+	if (mesh_rsn->wpa_s->current_ssid->mode != WPAS_MODE_MESH)
+		return -1;
+
+	mesh_mpm_auth_peer(mesh_rsn->wpa_s, addr);
+	return 0;
 }
 
 static int
@@ -71,6 +81,7 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 	cb.logger = auth_logger;
 	cb.get_psk = auth_get_psk;
 	cb.set_key = auth_set_key;
+	cb.start_ampe = auth_start_ampe;
 	/*
 	cb.for_each_sta = auth_for_each_sta;
 	*/
