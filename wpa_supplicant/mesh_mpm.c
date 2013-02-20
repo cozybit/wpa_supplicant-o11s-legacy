@@ -256,7 +256,11 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	if (conf->security == MESH_CONF_SEC_NONE) {
 		params.flags |= WPA_STA_AUTHORIZED;
 		params.flags |= WPA_STA_AUTHENTICATED;
+	} else {
+		sta->flags |= WLAN_STA_MFP;
+		params.flags |= WPA_STA_MFP;
 	}
+
 	//params.qosinfo = sta->qosinfo;
 	if ((ret = wpa_drv_sta_add(wpa_s, &params))) {
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
