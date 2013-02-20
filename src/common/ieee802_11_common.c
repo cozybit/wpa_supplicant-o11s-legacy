@@ -300,6 +300,14 @@ ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
 			elems->ssid_list = pos;
 			elems->ssid_list_len = elen;
 			break;
+		case WLAN_EID_AMPE:
+			elems->ampe = pos;
+			elems->ampe_len = elen;
+			break;
+		case WLAN_EID_MIC:
+			elems->mic = pos;
+			elems->mic_len = elen;
+			break;
 		default:
 			unknown++;
 			if (!show_errors)

@@ -256,6 +256,8 @@
 #define WLAN_EID_MESH_ID 114
 #define WLAN_EID_PEER_MGMT 117
 #define WLAN_EID_EXT_CAPAB 127
+#define WLAN_EID_AMPE 139
+#define WLAN_EID_MIC 140
 #define WLAN_EID_CCKM 156
 #define WLAN_EID_VHT_CAP 191
 #define WLAN_EID_VHT_OPERATION 192
@@ -600,6 +602,15 @@ struct ieee80211_vht_operation {
 	u8 vht_op_info_chan_center_freq_seg0_idx;
 	u8 vht_op_info_chan_center_freq_seg1_idx;
 	le16 vht_basic_mcs_set;
+} STRUCT_PACKED;
+
+struct ieee80211_ampe_ie {
+	u8 selected_pairwise_suite[4];
+	u8 local_nonce[32];
+	u8 peer_nonce[32];
+	u8 mgtk[16];
+	u8 key_rsc[8];
+	u8 key_expiration[4];
 } STRUCT_PACKED;
 
 #ifdef _MSC_VER
