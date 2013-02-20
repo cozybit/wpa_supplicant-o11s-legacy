@@ -62,11 +62,8 @@ mesh_config_create(struct wpa_ssid *ssid)
 	conf->mesh_pm_id = MESH_PATH_METRIC_AIRTIME;
 	conf->mesh_cc_id = 0;
 	conf->mesh_sp_id = MESH_SYNC_METHOD_NEIGHBOR_OFFSET;
-	/* TODO: should be 1 for SAE, but the kernel fails to set this in its
-	 * beacon, so neither peer will get CMD_NEW_PEER_CANDIDATE since
-	 * mesh_matches_local() fails. Easy patch in
-	 * net/mac80211/mesh.c:ieee80211_start_mesh()*/
-	conf->mesh_auth_id = 0;
+	/* TODO: the kernel actually doesn't set this correctly */
+	conf->mesh_auth_id = (conf->security & MESH_CONF_SEC_AUTH) ? 1 : 0;
 
 	return conf;
 }
@@ -119,16 +116,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	bss->iconf = conf;
 	ifmsh->conf = conf;
 
-	/* hook into AP auth functions */
-	if (wpa_key_mgmt_wpa_psk(ssid->key_mgmt)) {
-		bss->conf->wpa = ssid->proto;
-		bss->conf->wpa_key_mgmt = ssid->key_mgmt;
-		bss->conf->sae_groups = wpa_s->conf->sae_groups;
-		if (!bss->conf->sae_groups)
-			bss->conf->sae_groups = default_groups;
-		bss->conf->ssid.wpa_passphrase = ssid->passphrase;
-	}
-
 	ifmsh->bss[0]->max_num_sta = 10;
 
 	mconf = mesh_config_create(ssid);
@@ -177,6 +164,13 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	hostapd_setup_interface(ifmsh);
 
 	if (mconf->security != MESH_CONF_SEC_NONE) {
+		bss->conf->wpa = ssid->proto;
+		bss->conf->wpa_key_mgmt = ssid->key_mgmt;
+		bss->conf->sae_groups = wpa_s->conf->sae_groups;
+		if (!bss->conf->sae_groups)
+			bss->conf->sae_groups = default_groups;
+		bss->conf->ssid.wpa_passphrase = ssid->passphrase;
+
 		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
 		if (!wpa_s->mesh_rsn)
 			goto out_free;
