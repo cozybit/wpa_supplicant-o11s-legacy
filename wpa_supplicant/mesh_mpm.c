@@ -287,6 +287,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	u8 *pos;
 	u8 ie_len, add_plid = 0;
 	int ret;
+	int ampe = conf->security & MESH_CONF_SEC_AMPE;
 
 	buf = wpabuf_alloc(2 +      /* capability info */
 			   2 +      /* AID */
@@ -304,8 +305,11 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	wpabuf_put_u8(buf, type);
 
 	if (type != PLINK_CLOSE) {
-		/* TODO: security bit */
-		wpabuf_put_le16(buf, 0);
+		if (ampe)
+			wpabuf_put_u8(buf, 0x10);
+		else
+			wpabuf_put_u8(buf, 0x0);
+		wpabuf_put_u8(buf, 0);
 		if (type == PLINK_CONFIRM)
 			/* TODO: AID? */
 			wpabuf_put_le16(buf, 0);
@@ -338,6 +342,8 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 
         /* IE: Mesh Peering Management element */
 	ie_len = 4;
+	if (ampe)
+		ie_len += PMKID_LEN;
 	switch (type) {
 	case PLINK_OPEN:
 		break;
@@ -356,8 +362,12 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 
 	wpabuf_put_u8(buf, WLAN_EID_PEER_MGMT);
 	wpabuf_put_u8(buf, ie_len);
-	/* default peering protocol */
-	wpabuf_put_le16(buf, 0);
+	/* peering protocol (le!) */
+	if (ampe)
+		wpabuf_put_u8(buf, 0x01);
+	else
+		wpabuf_put_u8(buf, 0x00);
+	wpabuf_put_u8(buf, 0x0);
 	if (sta)
 		wpabuf_put_le16(buf, sta->my_lid);
 	else
@@ -366,9 +376,10 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		wpabuf_put_le16(buf, sta->peer_lid);
 	if (type == PLINK_CLOSE)
 		wpabuf_put_le16(buf, close_reason);
-	else
-		/* TODO HT IEs */
-		;
+	if (ampe)
+		mesh_rsn_get_pmkid(sta, (u8 *) wpabuf_put(buf, PMKID_LEN));
+
+	/* TODO HT IEs */
 
         /* TODO IE: Add MIC and encrypted AMPE */
         /* TODO protect_frame() */
