@@ -231,10 +231,8 @@ static void mesh_rsn_send_auth(struct wpa_supplicant *wpa_s,
 int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 			  struct sta_info *sta)
 {
-	u16 resp = WLAN_STATUS_SUCCESS;
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	struct wpabuf *buf;
-	int len;
 
 	if (!sta->sae) {
 		sta->sae = os_zalloc(sizeof(*sta->sae));
