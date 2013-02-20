@@ -3,6 +3,7 @@
 #include "rsn_supp/wpa_ie.h"
 #include "ap/wpa_auth.h"
 #include "ap/wpa_auth_i.h"
+#include "ap/pmksa_cache_auth.h"
 
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
@@ -282,4 +283,20 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 			       */
 	wpabuf_free(buf);
 	return 0;
+}
+
+void mesh_rsn_get_pmkid(struct sta_info *sta, u8 *pmkid)
+{
+	struct wpa_state_machine *sm = sta->wpa_sm;
+	if (sm->pmksa)
+		os_memcpy(pmkid, sm->pmksa->pmkid, PMKID_LEN);
+	else {
+		/*
+		 * Calculate PMKID since no PMKSA cache entry was
+		 * available with pre-calculated PMKID.
+		 */
+		rsn_pmkid(sm->PMK, PMK_LEN, sm->wpa_auth->addr,
+			  sm->addr, pmkid,
+			  wpa_key_mgmt_sha256(sm->wpa_key_mgmt));
+	}
 }
