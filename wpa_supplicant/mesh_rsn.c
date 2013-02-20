@@ -33,8 +33,6 @@ static const u8 * auth_get_psk(void *ctx, const u8 *addr, const u8 *prev_psk)
 	return NULL;
 }
 
-}
-
 static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 			const u8 *addr, int idx, u8 *key, size_t key_len)
 {
