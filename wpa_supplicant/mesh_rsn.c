@@ -18,11 +18,20 @@ static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 static const u8 * auth_get_psk(void *ctx, const u8 *addr, const u8 *prev_psk)
 {
 	struct mesh_rsn *mesh_rsn = ctx;
+	struct hostapd_data *hapd = mesh_rsn->wpa_s->ifmsh->bss[0];
+	struct sta_info *sta = ap_get_sta(hapd, addr);
+
 	wpa_printf(MSG_DEBUG, "AUTH: %s (addr=" MACSTR " prev_psk=%p)",
 		   __func__, MAC2STR(addr), prev_psk);
-	if (prev_psk)
-		return NULL;
-	return mesh_rsn->psk;
+
+	if (sta && sta->auth_alg == WLAN_AUTH_SAE) {
+		if (!sta->sae || prev_psk)
+			return NULL;
+		return sta->sae->pmk;
+	}
+	return NULL;
+}
+
 }
 
 static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
