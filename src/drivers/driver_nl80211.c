@@ -4407,7 +4407,18 @@ static int wpa_driver_nl80211_set_key(const char *ifname, void *priv,
 	if (seq && seq_len)
 		NLA_PUT(msg, NL80211_ATTR_KEY_SEQ, seq_len, seq);
 
-	if (addr && !is_broadcast_ether_addr(addr)) {
+	if (!addr && key_len && set_tx) {
+		/* this is a group tx key */
+		if (alg == WPA_ALG_IGTK || alg == WPA_ALG_CCMP) {
+			wpa_printf(MSG_DEBUG, "   TX GTK");
+			NLA_PUT_U32(msg, NL80211_ATTR_KEY_TYPE,
+				    NL80211_KEYTYPE_GROUP);
+			if (alg == WPA_ALG_IGTK)
+				NLA_PUT_FLAG(msg, NL80211_ATTR_KEY_DEFAULT_MGMT);
+			else
+				NLA_PUT_FLAG(msg, NL80211_ATTR_KEY_DEFAULT);
+		}
+	} else if (addr && !is_broadcast_ether_addr(addr)) {
 		wpa_printf(MSG_DEBUG, "   addr=" MACSTR, MAC2STR(addr));
 		NLA_PUT(msg, NL80211_ATTR_MAC, ETH_ALEN, addr);
 
