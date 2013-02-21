@@ -24,4 +24,7 @@ void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
 int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 			   struct sta_info *sta, const u8 *cat,
 			   struct wpabuf *buf);
+int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
+			  struct sta_info *sta,
+			  struct ieee802_11_elems *elems);
 #endif /* MESH_RSN_H */

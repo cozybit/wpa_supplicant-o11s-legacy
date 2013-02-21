@@ -457,3 +457,30 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 	os_free(mic_ie);
 	return 0;
 }
+
+int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
+			  struct sta_info *sta,
+			  struct ieee802_11_elems *elems)
+{
+	struct ieee80211_ampe_ie *ampe;
+	u8 null_nonce[32] = {};
+
+	/* TODO decryption */
+
+	if (!elems->ampe || elems->ampe_len < sizeof(struct ieee80211_ampe_ie)) {
+		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: invalid ampe ie");
+		return -1;
+	}
+
+	ampe = (struct ieee80211_ampe_ie *) elems->ampe;
+	if (os_memcmp(ampe->peer_nonce, null_nonce, 32) != 0 &&
+	    os_memcmp(ampe->peer_nonce, sta->my_nonce, 32) != 0) {
+		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: invalid peer nonce");
+		return -1;
+	}
+	memcpy(sta->peer_nonce, ampe->local_nonce, sizeof(ampe->local_nonce));
+	memcpy(sta->mgtk, ampe->mgtk, sizeof(ampe->mgtk));
+
+	/* todo parse mgtk expiration */
+	return 0;
+}
