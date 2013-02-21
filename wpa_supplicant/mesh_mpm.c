@@ -466,24 +466,35 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
 {
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u8 seq[6] = {};
 
 	int flags = WPA_STA_AUTHENTICATED |
 		    WPA_STA_AUTHORIZED |
 		    WPA_STA_MFP;
 
-	wpa_drv_sta_set_flags(wpa_s, sta->addr, flags, flags, ~0);
+	if (conf->security & MESH_CONF_SEC_AMPE) {
+		wpa_drv_sta_set_flags(wpa_s, sta->addr, flags, flags, ~0);
 
-	/* key index != 0 is used to set key type */
-	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
-			seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
-	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 4, 0,
-			seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
-	wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
-			seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
+		/* key index != 0 is used to set key type */
+		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
+				seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
+		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 4, 0,
+				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
+		wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
+				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
+	}
 	/* TODO
 	set_supported_rates(&nlcfg, peer, rates, rates_len);
 	*/
+
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
+
+	/* TODO
+	changed |= mesh_set_ht_op_mode(cand->conf->mesh);
+	*/
+	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
+		MACSTR " established\n", MAC2STR(sta->addr));
 }
 
 /* initiate peering with station */
@@ -560,15 +571,9 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 			break;
 		case CNF_ACPT:
-			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
-			if (conf->security != MESH_CONF_SEC_NONE)
+			if (conf->security & MESH_CONF_SEC_AMPE)
 				mesh_rsn_derive_mtk(wpa_s, sta);
 			mesh_mpm_plink_estab(wpa_s, sta);
-			/* TODO
-			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
-			*/
-			wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
-				MACSTR " established\n", MAC2STR(sta->addr));
 			break;
 		default:
 			break;
@@ -589,13 +594,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
-			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 			mesh_mpm_plink_estab(wpa_s, sta);
-			/* TODO
-			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
-			sae_debug(AMPE_DEBUG_FSM, "Mesh plink with "
-				MACSTR " ESTABLISHED\n", MAC2STR(cand->peer_mac));
-			*/
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 			break;
 		default:
