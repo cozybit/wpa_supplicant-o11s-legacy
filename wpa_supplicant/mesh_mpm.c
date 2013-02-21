@@ -469,6 +469,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u8 seq[6] = {};
 
+	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
+		MACSTR " established\n", MAC2STR(sta->addr));
+
 	if (conf->security & MESH_CONF_SEC_AMPE) {
 		/* key index != 0 is used to set key type */
 		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
@@ -477,6 +480,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
 		wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
 				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
+
+		wpa_hexdump(MSG_DEBUG, "mtk:", sta->mtk, sizeof(sta->mtk));
+		wpa_hexdump(MSG_DEBUG, "mgtk:", sta->mgtk, sizeof(sta->mgtk));
 	}
 
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
@@ -484,8 +490,6 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	/* TODO
 	changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 	*/
-	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
-		MACSTR " established\n", MAC2STR(sta->addr));
 }
 
 /* initiate peering with station */
