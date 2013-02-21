@@ -467,7 +467,6 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
 {
 	u8 seq[6] = {};
-	struct mesh_rsn *rsn = wpa_s->mesh_rsn;
 
 	int flags = WPA_STA_AUTHENTICATED |
 		    WPA_STA_AUTHORIZED |
@@ -479,9 +478,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
 			seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
 	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 4, 0,
-			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
+			seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
 	wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
-			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
+			seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
 	/* TODO
 	set_supported_rates(&nlcfg, peer, rates, rates_len);
 	*/
