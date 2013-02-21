@@ -469,13 +469,7 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u8 seq[6] = {};
 
-	int flags = WPA_STA_AUTHENTICATED |
-		    WPA_STA_AUTHORIZED |
-		    WPA_STA_MFP;
-
 	if (conf->security & MESH_CONF_SEC_AMPE) {
-		wpa_drv_sta_set_flags(wpa_s, sta->addr, flags, flags, ~0);
-
 		/* key index != 0 is used to set key type */
 		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
 				seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
@@ -484,9 +478,6 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 		wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
 				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
 	}
-	/* TODO
-	set_supported_rates(&nlcfg, peer, rates, rates_len);
-	*/
 
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 
