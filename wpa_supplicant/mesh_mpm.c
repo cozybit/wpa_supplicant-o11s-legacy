@@ -4,6 +4,7 @@
  * All right reserved.
  */
 #include "mesh_mpm.h"
+#include "mesh_rsn.h"
 
 #include "eloop.h"
 #include "ap.h"
@@ -473,6 +474,7 @@ mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			 enum plink_event next_state)
 {
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u16 reason = 0;
 
 	mpl_dbg(wpa_s, sta, next_state);
@@ -536,8 +538,9 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case CNF_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
+			if (conf->security != MESH_CONF_SEC_NONE)
+				mesh_rsn_derive_mtk(wpa_s, sta);
 			/* TODO
-			derive_mtk(cand);
 			estab_peer_link(cand->peer_mac,
 				cand->mtk, sizeof(cand->mtk),
 				cand->mgtk, sizeof(cand->mgtk),

@@ -323,6 +323,66 @@ mesh_rsn_derive_aek(struct mesh_rsn *rsn, struct sta_info *sta)
 		   context, sizeof(context), sta->aek, sizeof(sta->aek));
 }
 
+/* derive mesh temporal key from pmk */
+int mesh_rsn_derive_mtk(struct wpa_supplicant *wpa_s, struct sta_info *sta)
+{
+	u8 *ptr;
+	u8 *min, *max;
+	size_t nonce_len = sizeof(sta->my_nonce);
+	size_t lid_len = sizeof(sta->my_lid);
+
+	/* XXX use rsn pointer? */
+	u8 *myaddr = wpa_s->own_addr;
+	u8 *peer = sta->addr;
+
+	/* 2 nonces, 2 linkids, akm suite, 2 mac addrs */
+	u8 context[64 + 4 + 4 + 12];
+
+	ptr = context;
+	if (os_memcmp(sta->my_nonce, sta->peer_nonce, nonce_len) < 0) {
+		min = sta->my_nonce;
+		max = sta->peer_nonce;
+	} else {
+		min = sta->peer_nonce;
+		max = sta->my_nonce;
+	}
+	os_memcpy(ptr, min, nonce_len);
+	os_memcpy(ptr + nonce_len, max, nonce_len);
+	ptr += 2 * nonce_len;
+
+	/* FIXME memcmp here? */
+	if (os_memcmp(&sta->my_lid, &sta->peer_lid, lid_len) < 0) {
+		min = (u8*) &sta->my_lid;
+		max = (u8*) &sta->peer_lid;
+	} else {
+		min = (u8*) &sta->peer_lid;
+		max = (u8*) &sta->my_lid;
+	}
+	os_memcpy(ptr, min, lid_len);
+	os_memcpy(ptr + lid_len, max, lid_len);
+	ptr += 2 * lid_len;
+
+	/* SAE */
+	RSN_SELECTOR_PUT(context, wpa_cipher_to_suite(0, WPA_CIPHER_GCMP));
+	ptr += 4;
+
+	if (os_memcmp(myaddr, peer, ETH_ALEN) < 0) {
+		min = myaddr;
+		max = peer;
+	} else {
+		min = peer;
+		max = myaddr;
+	}
+	os_memcpy(ptr, min, ETH_ALEN);
+	os_memcpy(ptr + ETH_ALEN, max, ETH_ALEN);
+
+	sha256_prf(sta->sae->pmk, sizeof(sta->sae->pmk),
+		   "Temporal Key Derivation", context, sizeof(context),
+		   sta->mtk, sizeof(sta->mtk));
+	return 0;
+}
+
+
 void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
 			    struct sta_info *sta)
 {
