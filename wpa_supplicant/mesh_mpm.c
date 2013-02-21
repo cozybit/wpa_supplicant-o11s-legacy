@@ -9,6 +9,12 @@
 #include "eloop.h"
 #include "ap.h"
 
+/* TODO make configurable */
+#define dot11MeshMaxRetries 10
+#define dot11MeshRetryTimeout 1
+#define dot11MeshConfirmTimeout 1
+#define dot11MeshHoldingTimeout 1
+
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta);
 
@@ -432,10 +438,8 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 	case PLINK_OPEN_RCVD:
 	case PLINK_OPEN_SENT:
 		/* retry timer */
-		/* TODO max_retries, config for timeouts */
-		if (sta->mpm_retries < 10) {
-			/* TODO retry timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+		if (sta->mpm_retries < dot11MeshMaxRetries) {
+			eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 			break;
 		}
@@ -447,8 +451,7 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 		if (!reason)
 			reason = WLAN_REASON_MESH_CONFIRM_TIMEOUT;
 		sta->plink_state = PLINK_HOLDING;
-		/* TODO holding timeout */
-		eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+		eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
 		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 		break;
 	case PLINK_HOLDING:
@@ -488,8 +491,7 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 {
-	/* TODO retry timeout */
-	eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
@@ -525,8 +527,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
-			/* TODO holding timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+			eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:
@@ -536,7 +537,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case CNF_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_CNF_RCVD);
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+			eloop_register_timeout(dot11MeshConfirmTimeout, 0, plink_timer, wpa_s, sta);
 			break;
 		default:
 			break;
@@ -552,8 +553,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
-			/* TODO holding timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+			eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
 			sta->mpm_close_reason = reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
@@ -585,8 +585,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
 				reason = WLAN_REASON_MESH_CLOSE_RCVD;
-			/* TODO holding timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+			eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
 			sta->mpm_close_reason = reason;
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
@@ -611,8 +610,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			reason = WLAN_REASON_MESH_CLOSE_RCVD;
 
-			/* TODO holding timeout */
-			eloop_register_timeout(1, 0, plink_timer, wpa_s, sta);
+			eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
 			/* TODO
 			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 			*/
