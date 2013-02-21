@@ -470,13 +470,15 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 	const u8 *ampe_buf;
 	size_t crypt_len;
 
-	if (!elems->mic || elems->mic_len < AES_BLOCK_SIZE ||
-	    (elems->mic + elems->mic_len - start) < elems_len) {
+	if (!elems->mic || elems->mic_len < AES_BLOCK_SIZE) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing mic ie");
 		return -1;
 	}
 
 	ampe_buf = elems->mic + elems->mic_len;
+	if (ampe_buf - start < elems_len)
+		return -1;
+
 	crypt_len = elems_len - (ampe_buf - start);
 
 	if (crypt_len < 2) {
