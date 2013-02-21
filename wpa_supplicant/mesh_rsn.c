@@ -74,6 +74,7 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 {
 	struct wpa_auth_config conf;
 	struct wpa_auth_callbacks cb;
+	u8 seq[6] = {};
 
 	wpa_printf(MSG_DEBUG, "AUTH: Initializing group state machine");
 
@@ -83,7 +84,6 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 	conf.wpa_pairwise = WPA_CIPHER_CCMP;
 	conf.rsn_pairwise = WPA_CIPHER_CCMP;
 	conf.wpa_group = WPA_CIPHER_CCMP;
-	/* XXX: eh, no EAPOL? */
 	conf.eapol_version = 0;
 	conf.wpa_group_rekey = 600;
 
@@ -93,9 +93,6 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 	cb.get_psk = auth_get_psk;
 	cb.set_key = auth_set_key;
 	cb.start_ampe = auth_start_ampe;
-	/*
-	cb.for_each_sta = auth_for_each_sta;
-	*/
 
 	rsn->auth = wpa_init(addr, &conf, &cb);
 	if (rsn->auth == NULL) {
@@ -105,7 +102,14 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 
 	/* TODO: support rekeying */
 	random_get_bytes(rsn->mgtk, 16);
-	wpa_init_keys(rsn->auth);
+
+	/* TODO: don't hardcode key idx */
+	/* mcast mgmt */
+	wpa_drv_set_key(rsn->wpa_s, WPA_ALG_IGTK, NULL, 4, 1,
+			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
+	/* mcast data */
+	wpa_drv_set_key(rsn->wpa_s, WPA_ALG_CCMP, NULL, 1, 1,
+			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
 
 	return 0;
 }

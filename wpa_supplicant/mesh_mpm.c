@@ -476,7 +476,7 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 		/* key index != 0 is used to set key type */
 		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
 				seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
-		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 4, 0,
+		wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 1, 0,
 				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
 		wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
 				seq, sizeof(seq), sta->mgtk, sizeof(sta->mgtk));
