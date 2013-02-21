@@ -63,6 +63,7 @@ struct sta_info {
 	int mpm_retries;
 	u8 my_nonce[32];
 	u8 peer_nonce[32];
+	u8 aek[64];	/* SHA256 digest length */
 #endif /* CONFIG_MESH */
 
 	unsigned int nonerp_set:1;

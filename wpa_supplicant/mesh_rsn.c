@@ -4,7 +4,9 @@
 #include "ap/wpa_auth.h"
 #include "ap/wpa_auth_i.h"
 #include "ap/pmksa_cache_auth.h"
+#include "crypto/sha256.h"
 #include "crypto/random.h"
+#include "crypto/aes.h"
 
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
@@ -300,9 +302,32 @@ void mesh_rsn_get_pmkid(struct sta_info *sta, u8 *pmkid)
 	}
 }
 
+static void
+mesh_rsn_derive_aek(struct mesh_rsn *rsn, struct sta_info *sta)
+{
+	u8 *myaddr = rsn->auth->addr;
+	u8 *peer = sta->addr;
+	u8 *addr1 = peer, *addr2 = myaddr;
+	u8 context[AES_BLOCK_SIZE];
+	/* SAE */
+	RSN_SELECTOR_PUT(context, wpa_cipher_to_suite(0, WPA_CIPHER_GCMP));
+
+	if (os_memcmp(myaddr, peer, ETH_ALEN) < 0) {
+		addr1 = myaddr;
+		addr2 = peer;
+	}
+	os_memcpy(context + 4, addr1, ETH_ALEN);
+	os_memcpy(context + 10, addr2, ETH_ALEN);
+
+	sha256_prf(sta->sae->pmk, sizeof(sta->sae->pmk), "AEK Derivation",
+		   context, sizeof(context), sta->aek, sizeof(sta->aek));
+}
+
 void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
 			    struct sta_info *sta)
 {
 	random_get_bytes(sta->my_nonce, 32);
 	os_memset(sta->peer_nonce, 0, 32);
+	mesh_rsn_derive_aek(wpa_s->mesh_rsn, sta);
+}
 }
