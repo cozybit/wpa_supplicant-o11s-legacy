@@ -708,7 +708,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	/* TODO copy sup rates */
 
-	mesh_rsn_process_ampe(wpa_s, sta, &elems);
+	mesh_rsn_process_ampe(wpa_s, sta, &elems, ies, ie_len);
 
 	if (sta->plink_state == PLINK_BLOCKED)
 		return;

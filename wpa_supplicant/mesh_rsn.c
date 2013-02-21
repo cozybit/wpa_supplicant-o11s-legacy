@@ -460,19 +460,42 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 
 int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 			  struct sta_info *sta,
-			  struct ieee802_11_elems *elems)
+			  struct ieee802_11_elems *elems,
+			  const u8 *start, size_t elems_len)
 {
 	struct ieee80211_ampe_ie *ampe;
 	u8 null_nonce[32] = {};
+	u8 ampe_eid;
+	u8 ampe_ie_len;
+	const u8 *ampe_buf;
+	size_t crypt_len;
 
-	/* TODO decryption */
+	if (!elems->mic || elems->mic_len < AES_BLOCK_SIZE ||
+	    (elems->mic + elems->mic_len - start) < elems_len) {
+		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing mic ie");
+		return -1;
+	}
 
-	if (!elems->ampe || elems->ampe_len < sizeof(struct ieee80211_ampe_ie)) {
+	ampe_buf = elems->mic + elems->mic_len;
+	crypt_len = elems_len - (ampe_buf - start);
+
+	if (crypt_len < 2) {
+		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing ampe ie");
+		return -1;
+	}
+
+	/* TODO decryption here */
+	ampe_eid = *ampe_buf++;
+	ampe_ie_len = *ampe_buf++;
+	crypt_len -= 2;
+
+	if (crypt_len < ampe_ie_len ||
+	    ampe_ie_len < sizeof(struct ieee80211_ampe_ie)) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: invalid ampe ie");
 		return -1;
 	}
 
-	ampe = (struct ieee80211_ampe_ie *) elems->ampe;
+	ampe = (struct ieee80211_ampe_ie *) ampe_buf;
 	if (os_memcmp(ampe->peer_nonce, null_nonce, 32) != 0 &&
 	    os_memcmp(ampe->peer_nonce, sta->my_nonce, 32) != 0) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: invalid peer nonce");
