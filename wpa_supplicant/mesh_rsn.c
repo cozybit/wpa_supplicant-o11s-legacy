@@ -450,8 +450,8 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 
 	cat_to_mic_len = ie - cat - 1; /* cat inclusive */
 
-	wpabuf_put_data(buf, ampe_ie, 2 + sizeof(*ampe));
 	wpabuf_put_data(buf, mic_ie, 2 + AES_BLOCK_SIZE);
+	wpabuf_put_data(buf, ampe_ie, 2 + sizeof(*ampe));
 
 	os_free(ampe_ie);
 	os_free(mic_ie);
