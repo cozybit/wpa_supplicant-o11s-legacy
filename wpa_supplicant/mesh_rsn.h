@@ -17,4 +17,6 @@ struct mesh_rsn *mesh_rsn_auth_init(struct wpa_supplicant *wpa_s,
 				    struct mesh_conf *conf);
 int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta);
 void mesh_rsn_get_pmkid(struct sta_info *sta, u8 *pmkid);
+void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
+			    struct sta_info *sta);
 #endif /* MESH_RSN_H */
