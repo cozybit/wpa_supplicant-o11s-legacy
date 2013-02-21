@@ -476,7 +476,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 	}
 
 	ampe_buf = elems->mic + elems->mic_len;
-	if (ampe_buf - start < elems_len)
+	if (elems_len < ampe_buf - start)
 		return -1;
 
 	crypt_len = elems_len - (ampe_buf - start);
