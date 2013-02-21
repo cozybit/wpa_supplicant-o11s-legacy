@@ -308,7 +308,7 @@ ParseRes ieee802_11_parse_elems(const u8 *start, size_t len,
 			elems->mic = pos;
 			elems->mic_len = elen;
 			/* after mic everything is encrypted, so stop. */
-			left = 0;
+			left = elen;
 			break;
 		default:
 			unknown++;
