@@ -286,7 +286,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
-	u8 *pos;
+	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
 	int ampe = conf->security & MESH_CONF_SEC_AMPE;
@@ -299,10 +299,13 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 			   2 + 7 +  /* mesh config */
 			   2 + 26 + /* HT capabilities */
 			   2 + 22 + /* HT operation */
-			   2 + 23);   /* peering management */
+			   2 + 23 + /* peering management */
+			   2 + 96 + /* AMPE */
+			   2 + 16); /* MIC */
 	if (!buf)
 		return;
 
+	cat = wpabuf_head_u8(buf);
 	wpabuf_put_u8(buf, WLAN_ACTION_SELF_PROTECTED);
 	wpabuf_put_u8(buf, type);
 
@@ -383,8 +386,11 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 
 	/* TODO HT IEs */
 
-        /* TODO IE: Add MIC and encrypted AMPE */
-        /* TODO protect_frame() */
+	if (ampe && mesh_rsn_protect_frame(wpa_s->mesh_rsn, sta, cat, buf)) {
+		wpa_msg(wpa_s, MSG_INFO,
+			"Mesh MPM: failed to add AMPE and MIC IE");
+		goto fail;
+	}
 
 	ret = wpa_drv_send_action(wpa_s, wpa_s->assoc_freq, 0,
 				sta->addr, wpa_s->own_addr, wpa_s->own_addr,
@@ -392,6 +398,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	if (ret < 0)
 		wpa_msg(wpa_s, MSG_INFO, "Mesh MPM: failed to send peering frame");
 
+fail:
 	wpabuf_free(buf);
 }
 

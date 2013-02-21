@@ -329,5 +329,71 @@ void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
 	random_get_bytes(sta->my_nonce, 32);
 	os_memset(sta->peer_nonce, 0, 32);
 	mesh_rsn_derive_aek(wpa_s->mesh_rsn, sta);
+	/* TODO: init SIV-AES contexts for AMPE IE encryption */
 }
+
+/* insert AMPE and encrypted MIC at @ie.
+ * @mesh_rsn: mesh RSN context
+ * @sta: STA we're sending to
+ * @cat: pointer to category code in frame header.
+ * @buf: wpabuf to add encrypted AMPE and MIC to.
+ * */
+int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
+			   struct sta_info *sta, const u8 *cat,
+			   struct wpabuf *buf)
+{
+	struct ieee80211_ampe_ie  *ampe;
+	u8 *ie = wpabuf_head_u8(buf);
+	u8 *ampe_ie, *mic_ie;
+	unsigned short cat_to_mic_len;
+
+
+	if (AES_BLOCK_SIZE + 2 + sizeof(*ampe) + 2 > wpabuf_tailroom(buf)) {
+		wpa_printf(MSG_ERROR, "protect frame: buffer too small\n");
+		return -EINVAL;
+	}
+
+	ampe_ie = os_zalloc(2 + sizeof(*ampe));
+	if (!ampe_ie) {
+		wpa_printf(MSG_ERROR, "protect frame: out of memory\n");
+		return -ENOMEM;
+	}
+
+	mic_ie = os_zalloc(2 + AES_BLOCK_SIZE);
+	if (!mic_ie) {
+		os_free(ampe_ie);
+		wpa_printf(MSG_ERROR, "protect frame: out of memory\n");
+		return -ENOMEM;
+	}
+
+	/*  IE: AMPE */
+	ampe_ie[0] = WLAN_EID_AMPE;
+	ampe_ie[1] = sizeof(*ampe);
+	ampe = (struct ieee80211_ampe_ie *) (ampe_ie + 2);
+
+	RSN_SELECTOR_PUT(ampe->selected_pairwise_suite,
+		     wpa_cipher_to_suite(WPA_PROTO_RSN, WPA_CIPHER_CCMP));
+	os_memcpy(ampe->local_nonce, sta->my_nonce, 32);
+	os_memcpy(ampe->peer_nonce, sta->peer_nonce, 32);
+	/* incomplete: see 13.5.4 */
+	/* TODO: static mgtk for now since we don't support rekeying! */
+	os_memcpy(ampe->mgtk, rsn->mgtk, 16);
+	/*  TODO: Populate Key RSC */
+	os_memset(ampe->key_expiration, 0xff, 4);        /*  expire in 13 decades or so */
+
+	/* IE: MIC */
+	mic_ie[0] = WLAN_EID_MIC;
+	mic_ie[1] = AES_BLOCK_SIZE;
+
+	/* TODO: SIV-AES! */
+	os_memset(&mic_ie[2], 0, AES_BLOCK_SIZE);
+
+	cat_to_mic_len = ie - cat - 1; /* cat inclusive */
+
+	wpabuf_put_data(buf, ampe_ie, 2 + sizeof(*ampe));
+	wpabuf_put_data(buf, mic_ie, 2 + AES_BLOCK_SIZE);
+
+	os_free(ampe_ie);
+	os_free(mic_ie);
+	return 0;
 }
