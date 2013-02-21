@@ -4,6 +4,7 @@
 #include "ap/wpa_auth.h"
 #include "ap/wpa_auth_i.h"
 #include "ap/pmksa_cache_auth.h"
+#include "crypto/random.h"
 
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
@@ -297,4 +298,11 @@ void mesh_rsn_get_pmkid(struct sta_info *sta, u8 *pmkid)
 			  sm->addr, pmkid,
 			  wpa_key_mgmt_sha256(sm->wpa_key_mgmt));
 	}
+}
+
+void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
+			    struct sta_info *sta)
+{
+	random_get_bytes(sta->my_nonce, 32);
+	os_memset(sta->peer_nonce, 0, 32);
 }

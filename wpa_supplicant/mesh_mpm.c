@@ -196,6 +196,8 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 	 * the AP code already sets this flag. */
 	sta->flags |= WLAN_STA_AUTH;
 
+	mesh_rsn_init_ampe_sta(wpa_s, sta);
+
 	os_memset(&params, 0, sizeof(params));
 	params.addr = sta->addr;
 	params.flags = (WPA_STA_AUTHENTICATED | WPA_STA_AUTHORIZED);
