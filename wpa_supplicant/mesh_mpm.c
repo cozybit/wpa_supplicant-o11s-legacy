@@ -460,6 +460,30 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 	}
 }
 
+static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
+				 struct sta_info *sta)
+{
+	u8 seq[6] = {};
+	struct mesh_rsn *rsn = wpa_s->mesh_rsn;
+
+	int flags = WPA_STA_AUTHENTICATED |
+		    WPA_STA_AUTHORIZED |
+		    WPA_STA_MFP;
+
+	wpa_drv_sta_set_flags(wpa_s, sta->addr, flags, flags, ~0);
+
+	/* key index != 0 is used to set key type */
+	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 0, 0,
+			seq, sizeof(seq), sta->mtk, sizeof(sta->mtk));
+	wpa_drv_set_key(wpa_s, WPA_ALG_CCMP, sta->addr, 4, 0,
+			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
+	wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
+			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
+	/* TODO
+        set_supported_rates(&nlcfg, peer, rates, rates_len);
+	*/
+}
+
 /* initiate peering with station */
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
@@ -540,14 +564,8 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 			if (conf->security != MESH_CONF_SEC_NONE)
 				mesh_rsn_derive_mtk(wpa_s, sta);
+			mesh_mpm_plink_estab(wpa_s, sta);
 			/* TODO
-			estab_peer_link(cand->peer_mac,
-				cand->mtk, sizeof(cand->mtk),
-				cand->mgtk, sizeof(cand->mgtk),
-				cand->mgtk_expiration,
-				cand->sup_rates,
-				cand->sup_rates_len,
-				cand->cookie);
 			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 			*/
 			wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
@@ -574,12 +592,8 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case OPN_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
+			mesh_mpm_plink_estab(wpa_s, sta);
 			/* TODO
-			estab_peer_link(cand->peer_mac,
-				cand->mtk, sizeof(cand->mtk),
-				cand->mgtk, sizeof(cand->mgtk),
-				cand->mgtk_expiration, cand->sup_rates,
-				cand->sup_rates_len, cand->cookie);
 			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 			sae_debug(AMPE_DEBUG_FSM, "Mesh plink with "
 				MACSTR " ESTABLISHED\n", MAC2STR(cand->peer_mac));
