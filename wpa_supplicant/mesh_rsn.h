@@ -7,6 +7,7 @@ struct mesh_rsn {
 	struct wpa_supplicant *wpa_s;
 	struct wpa_authenticator *auth;
 	u8 psk[SAE_PMK_LEN];
+	u8 mgtk[16];
 #ifdef CONFIG_SAE
 	struct wpabuf *sae_token;
 	int sae_group_index;

@@ -101,8 +101,8 @@ __mesh_rsn_auth_init(struct mesh_rsn *rsn, const u8 *addr)
 		return -1;
 	}
 
-	/* XXX: init sae things here */
-
+	/* TODO: support rekeying */
+	random_get_bytes(rsn->mgtk, 16);
 	wpa_init_keys(rsn->auth);
 
 	return 0;
