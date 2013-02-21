@@ -59,37 +59,37 @@ static int mesh_mpm_parse_peer_mgmt(struct wpa_supplicant *wpa_s,
 }
 
 enum plink_event {
-        PLINK_UNDEFINED,
-        OPN_ACPT,
-        OPN_RJCT,
-        OPN_IGNR,
-        CNF_ACPT,
-        CNF_RJCT,
-        CNF_IGNR,
-        CLS_ACPT,
-        CLS_IGNR
+	PLINK_UNDEFINED,
+	OPN_ACPT,
+	OPN_RJCT,
+	OPN_IGNR,
+	CNF_ACPT,
+	CNF_RJCT,
+	CNF_IGNR,
+	CLS_ACPT,
+	CLS_IGNR
 };
 
 static const char *mplstate[] = {
-    [PLINK_LISTEN] = "LISTEN",
-    [PLINK_OPEN_SENT] = "OPEN_SENT",
-    [PLINK_OPEN_RCVD] = "OPEN_RCVD",
-    [PLINK_CNF_RCVD] = "CNF_RCVD",
-    [PLINK_ESTAB] = "ESTAB",
-    [PLINK_HOLDING] = "HOLDING",
-    [PLINK_BLOCKED] = "BLOCKED"
+	[PLINK_LISTEN] = "LISTEN",
+	[PLINK_OPEN_SENT] = "OPEN_SENT",
+	[PLINK_OPEN_RCVD] = "OPEN_RCVD",
+	[PLINK_CNF_RCVD] = "CNF_RCVD",
+	[PLINK_ESTAB] = "ESTAB",
+	[PLINK_HOLDING] = "HOLDING",
+	[PLINK_BLOCKED] = "BLOCKED"
 };
 
 static const char *mplevent[] = {
-        [PLINK_UNDEFINED] = "UNDEFINED",
-        [OPN_ACPT] = "OPN_ACPT",
-        [OPN_RJCT] = "OPN_RJCT",
-        [OPN_IGNR] = "OPN_IGNR",
-        [CNF_ACPT] = "CNF_ACPT",
-        [CNF_RJCT] = "CNF_RJCT",
-        [CNF_IGNR] = "CNF_IGNR",
-        [CLS_ACPT] = "CLS_ACPT",
-        [CLS_IGNR] = "CLS_IGNR"
+	[PLINK_UNDEFINED] = "UNDEFINED",
+	[OPN_ACPT] = "OPN_ACPT",
+	[OPN_RJCT] = "OPN_RJCT",
+	[OPN_IGNR] = "OPN_IGNR",
+	[CNF_ACPT] = "CNF_ACPT",
+	[CNF_RJCT] = "CNF_RJCT",
+	[CNF_IGNR] = "CNF_IGNR",
+	[CLS_ACPT] = "CLS_ACPT",
+	[CLS_IGNR] = "CLS_IGNR"
 };
 
 #define mpl_dbg(wpa_s, sta, event) \
@@ -346,7 +346,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	wpabuf_put_u8(buf, 0x1 | 0x8);
 	wpabuf_put_u8(buf, 0);
 
-        /* IE: Mesh Peering Management element */
+	/* IE: Mesh Peering Management element */
 	ie_len = 4;
 	if (ampe)
 		ie_len += PMKID_LEN;
@@ -480,7 +480,7 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	wpa_drv_set_key(wpa_s, WPA_ALG_IGTK, sta->addr, 4, 0,
 			seq, sizeof(seq), rsn->mgtk, sizeof(rsn->mgtk));
 	/* TODO
-        set_supported_rates(&nlcfg, peer, rates, rates_len);
+	set_supported_rates(&nlcfg, peer, rates, rates_len);
 	*/
 }
 
@@ -639,7 +639,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		default:
-            break;
+			break;
 		}
 		break;
 	default:
