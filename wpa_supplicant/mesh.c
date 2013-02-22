@@ -220,6 +220,11 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	params.meshid_len = ssid->ssid_len;
 	params.freq = ssid->frequency;
 
+	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE) {
+		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
+		wpa_s->conf->user_mpm = 1;
+	}
+
 	if (wpa_s->conf->user_mpm) {
 		params.flags |= WPA_DRIVER_MESH_FLAG_USER_MPM;
 		params.conf.flags &= ~WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
@@ -227,9 +232,6 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 		params.flags |= WPA_DRIVER_MESH_FLAG_DRIVER_MPM;
 		params.conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
 	}
-
-	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE)
-		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
 
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
