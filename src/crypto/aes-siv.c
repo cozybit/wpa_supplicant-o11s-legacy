@@ -13,6 +13,10 @@
 #include "aes.h"
 #include "aes_wrap.h"
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+#endif
+
 static const u8 zero[AES_BLOCK_SIZE];
 
 static void dbl(u8 *pad)
@@ -31,7 +35,7 @@ static void xor(u8 *a, u8 *b)
 {
 	int i;
 	for (i=0; i < AES_BLOCK_SIZE; i++)
-		*a ^= *b;
+		*a++ ^= *b++;
 }
 
 static void xorend(u8 *a, int alen, u8 *b, int blen)
@@ -56,7 +60,7 @@ static void pad(u8 *pad, const u8 *addr, size_t len)
 }
 
 int aes_s2v(const u8 *key, size_t num_elem, const u8 *addr[],
-            const size_t *len, u8 *mac)
+            size_t *len, u8 *mac)
 {
 	u8 tmp[AES_BLOCK_SIZE], tmp2[AES_BLOCK_SIZE];
 	u8 *buf = NULL;
@@ -74,8 +78,6 @@ int aes_s2v(const u8 *key, size_t num_elem, const u8 *addr[],
 		return ret;
 
 	for (i=0; i < num_elem - 1; i++) {
-		if (len[i] != AES_BLOCK_SIZE)
-			return -EINVAL;
 
 		ret = omac1_aes_128(key, addr[i], len[i], tmp2);
 		if (ret)
@@ -103,6 +105,30 @@ int aes_s2v(const u8 *key, size_t num_elem, const u8 *addr[],
 	return omac1_aes_128(key, tmp, sizeof(tmp), mac);
 }
 
+int aes_siv_encrypt(const u8 *key, const u8 *pw,
+		    size_t pwlen, size_t num_elem,
+		    const u8 *addr[], const size_t *len, u8 *out)
+{
+	const u8 *_addr[6];
+	size_t _len[6];
+	const u8 *k1 = key, *k2 = key + 16;
+	u8 v[AES_BLOCK_SIZE];
+	int i;
+
+	if (num_elem > ARRAY_SIZE(_addr) - 1)
+		return -1;
+
+	for (i=0; i < num_elem; i++) {
+		_addr[i] = addr[i];
+		_len[i] = len[i];
+	}
+	_addr[num_elem] = pw;
+	_len[num_elem] = pwlen;
+
+	aes_s2v(k1, num_elem + 1, _addr, _len, v);
+	return 0;
+}
+
 int main()
 {
 	/* 1st test vector */
@@ -122,6 +148,13 @@ int main()
 		0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee
 	};
 
+	u8 iv_ctext[sizeof(plaintext) + AES_BLOCK_SIZE];
+
+	const u8 *ad_ptr = ad;
+	size_t ad_len = sizeof(ad);
+
+	aes_siv_encrypt(key, plaintext, sizeof(plaintext), 1,
+			&ad_ptr, &ad_len, iv_ctext);
 	return 0;
 }
 
