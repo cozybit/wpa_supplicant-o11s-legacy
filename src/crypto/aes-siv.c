@@ -114,6 +114,7 @@ int aes_siv_encrypt(const u8 *key, const u8 *pw,
 	const u8 *k1 = key, *k2 = key + 16;
 	u8 v[AES_BLOCK_SIZE];
 	int i;
+	u8 *iv, *crypt_pw;
 
 	if (num_elem > ARRAY_SIZE(_addr) - 1)
 		return -1;
@@ -126,7 +127,17 @@ int aes_siv_encrypt(const u8 *key, const u8 *pw,
 	_len[num_elem] = pwlen;
 
 	aes_s2v(k1, num_elem + 1, _addr, _len, v);
-	return 0;
+
+	iv = out;
+	crypt_pw = out + AES_BLOCK_SIZE;
+
+	memcpy(iv, v, AES_BLOCK_SIZE);
+	memcpy(crypt_pw, pw, pwlen);
+
+	/* zero out 63rd and 31st bits of ctr (from right) */
+	v[8] &= 0x7f;
+	v[12] &= 0x7f;
+	return aes_128_ctr_encrypt(k2, v, crypt_pw, pwlen);
 }
 
 int main()
