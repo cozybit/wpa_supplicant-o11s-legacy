@@ -140,6 +140,46 @@ int aes_siv_encrypt(const u8 *key, const u8 *pw,
 	return aes_128_ctr_encrypt(k2, v, crypt_pw, pwlen);
 }
 
+int aes_siv_decrypt(const u8 *key, const u8 *iv_crypt, size_t iv_c_len,
+		    int num_elem, const u8 *addr[], const size_t *len,
+		    u8 *out)
+{
+	const u8 *_addr[6];
+	size_t _len[6];
+	const u8 *k1 = key, *k2 = key + 16;
+	size_t crypt_len = iv_c_len - 16;
+	int i, ret;
+
+	u8 iv[16];
+	u8 check[16];
+
+	if (num_elem > ARRAY_SIZE(_addr) - 1)
+		return -1;
+
+	for (i=0; i < num_elem; i++) {
+		_addr[i] = addr[i];
+		_len[i] = len[i];
+	}
+	_addr[num_elem] = out;
+	_len[num_elem] = crypt_len;
+
+	memcpy(iv, iv_crypt, 16);
+	memcpy(out, iv_crypt + 16, crypt_len);
+
+	iv[8] &= 0x7f;
+	iv[12] &= 0x7f;
+
+	ret = aes_128_ctr_encrypt(k2, iv, out, crypt_len);
+	if (ret)
+		return ret;
+
+	aes_s2v(k1, num_elem + 1, _addr, _len, check);
+	if (os_memcmp(check, iv, 16) == 0)
+		return 0;
+
+	return -1;
+}
+
 int main()
 {
 	/* 1st test vector */
@@ -158,6 +198,7 @@ int main()
 		0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
 		0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee
 	};
+	u8 plaintext_2[sizeof(plaintext)];
 
 	u8 iv_ctext[sizeof(plaintext) + AES_BLOCK_SIZE];
 
@@ -166,6 +207,14 @@ int main()
 
 	aes_siv_encrypt(key, plaintext, sizeof(plaintext), 1,
 			&ad_ptr, &ad_len, iv_ctext);
+
+	aes_siv_decrypt(key, iv_ctext, sizeof(iv_ctext), 1,
+			&ad_ptr, &ad_len, plaintext_2);
+
+	if (os_memcmp(plaintext, plaintext_2, sizeof(plaintext)) == 0)
+		printf("ok\n");
+	else
+		printf("err\n");
 	return 0;
 }
 
