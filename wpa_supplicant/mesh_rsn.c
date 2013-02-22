@@ -367,7 +367,7 @@ int mesh_rsn_derive_mtk(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 	ptr += 2 * lid_len;
 
 	/* SAE */
-	RSN_SELECTOR_PUT(context, wpa_cipher_to_suite(0, WPA_CIPHER_GCMP));
+	RSN_SELECTOR_PUT(ptr, wpa_cipher_to_suite(0, WPA_CIPHER_GCMP));
 	ptr += 4;
 
 	if (os_memcmp(myaddr, peer, ETH_ALEN) < 0) {
