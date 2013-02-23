@@ -294,17 +294,10 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 void mesh_rsn_get_pmkid(struct sta_info *sta, u8 *pmkid)
 {
 	struct wpa_state_machine *sm = sta->wpa_sm;
-	if (sm->pmksa)
-		os_memcpy(pmkid, sm->pmksa->pmkid, PMKID_LEN);
-	else {
-		/*
-		 * Calculate PMKID since no PMKSA cache entry was
-		 * available with pre-calculated PMKID.
-		 */
-		rsn_pmkid(sm->PMK, PMK_LEN, sm->wpa_auth->addr,
-			  sm->addr, pmkid,
-			  wpa_key_mgmt_sha256(sm->wpa_key_mgmt));
-	}
+	/* don't expect wpa auth to cache the pmkid for now */
+	rsn_pmkid(sta->sae->pmk, PMK_LEN, sm->wpa_auth->addr,
+		  sm->addr, pmkid,
+		  wpa_key_mgmt_sha256(sm->wpa_key_mgmt));
 }
 
 static void
