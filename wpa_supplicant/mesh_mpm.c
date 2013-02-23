@@ -312,7 +312,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	if (!buf)
 		return;
 
-	cat = wpabuf_head_u8(buf);
+	cat = wpabuf_mhead_u8(buf);
 	wpabuf_put_u8(buf, WLAN_ACTION_SELF_PROTECTED);
 	wpabuf_put_u8(buf, type);
 
@@ -712,7 +712,8 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	/* TODO copy sup rates */
 
-	mesh_rsn_process_ampe(wpa_s, sta, &elems, ies, ie_len);
+	mesh_rsn_process_ampe(wpa_s, sta, &elems,
+				  rx_action->data - 1, ies, ie_len);
 
 	if (sta->plink_state == PLINK_BLOCKED)
 		return;
