@@ -223,6 +223,9 @@ endif
 
 ifdef CONFIG_MESH
 NEED_80211_COMMON=y
+NEED_AES_SIV=y
+NEED_AES_OMAC1=y
+NEED_AES_CTR=y
 CFLAGS += -DCONFIG_MESH
 OBJS += mesh.o mesh_mpm.o mesh_rsn.o
 endif
@@ -1101,6 +1104,9 @@ ifdef NEED_AES_ENC
 ifdef CONFIG_INTERNAL_AES
 AESOBJS += ../src/crypto/aes-internal-enc.o
 endif
+endif
+ifdef NEED_AES_SIV
+AESOBJS += ../src/crypto/aes-siv.o
 endif
 ifdef NEED_AES
 OBJS += $(AESOBJS)
