@@ -174,7 +174,7 @@ int aes_siv_decrypt(const u8 *key, const u8 *iv_crypt, size_t iv_c_len,
 		return ret;
 
 	aes_s2v(k1, num_elem + 1, _addr, _len, check);
-	if (os_memcmp(check, iv, 16) == 0)
+	if (os_memcmp(check, iv_crypt, 16) == 0)
 		return 0;
 
 	return -1;
@@ -182,6 +182,8 @@ int aes_siv_decrypt(const u8 *key, const u8 *iv_crypt, size_t iv_c_len,
 
 int main()
 {
+	int ret;
+
 	/* 1st test vector */
 	u8 key[] = {
 		0xff, 0xfe, 0xfd, 0xfc, 0xfb, 0xfa, 0xf9, 0xf8,
@@ -208,8 +210,11 @@ int main()
 	aes_siv_encrypt(key, plaintext, sizeof(plaintext), 1,
 			&ad_ptr, &ad_len, iv_ctext);
 
-	aes_siv_decrypt(key, iv_ctext, sizeof(iv_ctext), 1,
+	ret = aes_siv_decrypt(key, iv_ctext, sizeof(iv_ctext), 1,
 			&ad_ptr, &ad_len, plaintext_2);
+
+	if (ret)
+		printf("decrypt failed\n");
 
 	if (os_memcmp(plaintext, plaintext_2, sizeof(plaintext)) == 0)
 		printf("ok\n");
