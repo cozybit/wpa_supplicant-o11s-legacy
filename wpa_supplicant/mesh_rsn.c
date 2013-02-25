@@ -390,29 +390,6 @@ void mesh_rsn_init_ampe_sta(struct wpa_supplicant *wpa_s,
 	/* TODO: init SIV-AES contexts for AMPE IE encryption */
 }
 
-/* create Associated Data for AMPE frames */
-static u8 * mesh_rsn_build_aad(const u8 *addr1, const u8 *addr2,
-			       const u8 *start, const u8 *end, size_t *len)
-{
-	u8 *aad;
-
-	if (!start || !end || start == end || start > end) {
-		wpa_printf(MSG_ERROR,
-			   "couldn't build AAD: pointers don't make sense!");
-		return NULL;
-	}
-
-	*len = ETH_ALEN + ETH_ALEN + (end - start);
-	aad = os_zalloc(*len);
-	if (!aad)
-		return NULL;
-	os_memcpy(aad, addr1, ETH_ALEN);
-	os_memcpy(aad + ETH_ALEN, addr2, ETH_ALEN);
-	os_memcpy(aad + ETH_ALEN * 2, start, end - start);
-	wpa_hexdump(MSG_DEBUG, "AAD:", aad, *len);
-	return aad;
-}
-
 /* insert AMPE and encrypted MIC at @ie.
  * @mesh_rsn: mesh RSN context
  * @sta: STA we're sending to
@@ -425,8 +402,9 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 {
 	struct ieee80211_ampe_ie  *ampe;
 	u8 const *ie = wpabuf_head_u8(buf) + wpabuf_len(buf);
-	u8 *ampe_ie = NULL, *mic_ie = NULL, *aad = NULL, *mic_payload;
-	size_t aad_len;
+	u8 *ampe_ie = NULL, *mic_ie = NULL, *mic_payload;
+	const u8 *aad[] = {rsn->auth->addr, sta->addr, cat};
+	const size_t aad_len[] = {ETH_ALEN, ETH_ALEN, ie - cat};
 	int ret;
 
 	if (AES_BLOCK_SIZE + 2 + sizeof(*ampe) + 2 > wpabuf_tailroom(buf)) {
@@ -468,17 +446,10 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 	wpabuf_put_data(buf, mic_ie, 2);
 	/* MIC field is output ciphertext */
 
-	aad = mesh_rsn_build_aad(rsn->auth->addr, sta->addr,
-				 cat, ie, &aad_len);
-	if (!aad) {
-		ret = -ENOMEM;
-		goto free;
-	}
-
 	/* encrypt after MIC */
 	mic_payload = (u8 *) wpabuf_put(buf, 2 + sizeof(*ampe) + AES_BLOCK_SIZE);
-	if (aes_siv_encrypt(sta->aek, ampe_ie, 2 + sizeof(*ampe), 1,
-			    &aad, &aad_len, mic_payload)) {
+	if (aes_siv_encrypt(sta->aek, ampe_ie, 2 + sizeof(*ampe), 3,
+			    aad, aad_len, mic_payload)) {
 		wpa_printf(MSG_ERROR, "protect frame: failed to encrypt\n");
 		ret = -ENOMEM;
 		goto free;
@@ -489,8 +460,6 @@ free:
 		os_free(ampe_ie);
 	if (mic_ie)
 		os_free(mic_ie);
-	if (aad)
-		os_free(aad);
 	return ret;
 }
 
@@ -505,9 +474,10 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 	u8 null_nonce[32] = {};
 	u8 ampe_eid;
 	u8 ampe_ie_len;
-	const u8 *ampe_buf;
-	u8 *aad = NULL, *crypt = NULL;
-	size_t aad_len, crypt_len;
+	u8 *ampe_buf, *crypt = NULL;
+	size_t crypt_len;
+	const u8 *aad[] = {sta->addr, wpa_s->mesh_rsn->auth->addr, cat};
+	const size_t aad_len[] = {ETH_ALEN, ETH_ALEN, (elems->mic - 2) - cat};
 
 	if (!elems->mic || elems->mic_len < AES_BLOCK_SIZE) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing mic ie");
@@ -524,27 +494,21 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	aad = mesh_rsn_build_aad(sta->addr, wpa_s->mesh_rsn->auth->addr,
-				 cat, elems->mic - 2, &aad_len);
-	if (!aad) {
-		wpa_printf(MSG_ERROR, "Mesh RSN: out of memory\n");
-		return -ENOMEM;
-	}
-
 	/* crypt is modified by siv_decrypt */
 	crypt = os_zalloc(crypt_len);
 	if (!crypt) {
-		wpa_printf(MSG_ERROR, "Mesh RSN: out of memory\n");
+		wpa_printf(MSG_ERROR, "Mesh RSN: out of memory");
 		ret = -ENOMEM;
 		goto free;
 	}
 
 	os_memcpy(crypt, elems->mic, crypt_len);
 
-	if (aes_siv_decrypt(sta->aek, crypt, crypt_len, 1,
-			    &aad, &aad_len, ampe_buf)) {
-		/* TODO: verification currently always fails, but it decrypts
-		 * alright so just fall through. */
+	if (aes_siv_decrypt(sta->aek, crypt, crypt_len, 3,
+			    aad, aad_len, ampe_buf)) {
+		wpa_printf(MSG_ERROR, "Mesh RSN: frame verification failed!");
+		ret = -1;
+		goto free;
 	}
 
 	ampe_eid = *ampe_buf++;
@@ -569,8 +533,6 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 
 	/* todo parse mgtk expiration */
 free:
-	if (aad)
-		os_free(aad);
 	if (crypt)
 		os_free(crypt);
 	return ret;

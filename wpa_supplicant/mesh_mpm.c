@@ -649,6 +649,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 {
 	unsigned char action_field;
 	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
+	struct mesh_conf *mconf = wpa_s->ifmsh->mconf;
 	struct sta_info *sta;
 	u16 plid = 0, llid = 0;
 	enum plink_event event;
@@ -712,8 +713,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	/* TODO copy sup rates */
 
-	mesh_rsn_process_ampe(wpa_s, sta, &elems,
-				  rx_action->data - 1, ies, ie_len);
+	if (mconf->security & MESH_CONF_SEC_AMPE)
+		if (mesh_rsn_process_ampe(wpa_s, sta, &elems,
+					  rx_action->data - 1, ies, ie_len))
+			return;
 
 	if (sta->plink_state == PLINK_BLOCKED)
 		return;
