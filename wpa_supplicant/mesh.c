@@ -222,6 +222,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 
 	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE) {
 		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
+		params.flags |= WPA_DRIVER_MESH_FLAG_AMPE;
 		wpa_s->conf->user_mpm = 1;
 	}
 
