@@ -404,7 +404,7 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 	u8 *ampe_ie = NULL, *mic_ie = NULL, *mic_payload;
 	const u8 *aad[] = {rsn->auth->addr, sta->addr, cat};
 	const size_t aad_len[] = {ETH_ALEN, ETH_ALEN, ie - cat};
-	int ret;
+	int ret = 0;
 
 	if (AES_BLOCK_SIZE + 2 + sizeof(*ampe) + 2 > wpabuf_tailroom(buf)) {
 		wpa_printf(MSG_ERROR, "protect frame: buffer too small\n");
