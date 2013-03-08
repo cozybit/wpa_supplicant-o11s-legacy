@@ -7,6 +7,8 @@
 #include "crypto/sha256.h"
 #include "crypto/random.h"
 #include "crypto/aes.h"
+#include "crypto/aes_siv.h"
+#include "wpas_glue.h"
 
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
