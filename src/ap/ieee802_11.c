@@ -647,13 +647,15 @@ static void handle_auth(struct hostapd_data *hapd,
 #ifdef CONFIG_MESH
 	/* if the mesh peer is not available, we don't do authentication. */
 	sta = ap_get_sta(hapd, mgmt->sa);
+	if (!sta)
+		return;
 #else
 	sta = ap_sta_add(hapd, mgmt->sa);
-#endif
 	if (!sta) {
 		resp = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
 		goto fail;
 	}
+#endif
 
 	if (vlan_id > 0) {
 		if (!hostapd_vlan_id_valid(hapd->conf->vlan, vlan_id)) {
