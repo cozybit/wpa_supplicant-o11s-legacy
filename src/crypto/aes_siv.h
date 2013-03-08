@@ -8,6 +8,7 @@
  */
 #ifndef AES_SIV_H
 #define AES_SIV_H
+
 int aes_siv_encrypt(const u8 *key, const u8 *pw,
 		    size_t pwlen, size_t num_elem,
 		    const u8 *addr[], const size_t *len, u8 *out);
