@@ -293,6 +293,8 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
+	u8 ht_cap[2 + 26];
+	u8 ht_ope[2 + 22];
 	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
@@ -392,6 +394,12 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		mesh_rsn_get_pmkid(sta, (u8 *) wpabuf_put(buf, PMKID_LEN));
 
 	/* TODO HT IEs */
+	if (conf->channel_type != MESH_CHAN_NO_HT) {
+		pos = hostapd_eid_ht_capabilities(bss, ht_cap);
+		wpabuf_put_data(buf, ht_cap, pos - ht_cap);
+		pos = hostapd_eid_ht_operation(bss, ht_ope);
+		wpabuf_put_data(buf, ht_ope, pos - ht_ope);
+	}
 
 	if (ampe && mesh_rsn_protect_frame(wpa_s->mesh_rsn, sta, cat, buf)) {
 		wpa_msg(wpa_s, MSG_INFO,
