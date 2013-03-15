@@ -38,6 +38,7 @@ struct mesh_conf {
 #define MESH_CONF_SEC_AUTH BIT(1)
 #define MESH_CONF_SEC_AMPE BIT(2)
 	int security;
+	enum mesh_channel_type channel_type;
 };
 #endif
 

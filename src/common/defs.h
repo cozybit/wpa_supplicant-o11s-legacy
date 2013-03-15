@@ -335,6 +335,13 @@ enum plink_action_field {
 	PLINK_CLOSE
 };
 
+enum mesh_channel_type {
+	MESH_CHAN_NO_HT,
+	MESH_CHAN_HT20,
+	MESH_CHAN_HT40MINUS,
+	MESH_CHAN_HT40PLUS
+};
+
 #endif /* CONFIG_MESH */
 
 #endif /* DEFS_H */

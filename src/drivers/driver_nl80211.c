@@ -7151,6 +7151,11 @@ static int wpa_driver_nl80211_join_mesh(
 		wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq);
 		NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, params->freq);
 	}
+	/* if not NL80211_CHAN_NO_HT, only we set channel type */
+	if (params->channel_type != 0) {
+		NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE,
+			    params->channel_type);
+	}
 	if (params->meshid) {
 		wpa_hexdump_ascii(MSG_DEBUG, "  * SSID",
 				  params->meshid, params->meshid_len);

@@ -147,6 +147,16 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 	}
 
+	/* Set the channel type */
+	if (wpa_s->conf->mesh_ht_mode == 1)
+		mconf->channel_type = MESH_CHAN_HT20;
+	else if (wpa_s->conf->mesh_ht_mode == 2)
+		mconf->channel_type = MESH_CHAN_HT40PLUS;
+	else if (wpa_s->conf->mesh_ht_mode == 3)
+		mconf->channel_type = MESH_CHAN_HT40MINUS;
+	else
+		mconf->channel_type = MESH_CHAN_NO_HT;
+
 	/* XXX: hack! this is so an MPM which correctly sets the ERP
 	 * mandatory rates as BSSBasicRateSet doesn't reject us. We
 	 * could add a new hw_mode HOSTAPD_MODE_IEEE80211G_ERP, but
@@ -242,6 +252,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	if (wpa_s->ifmsh) {
 		params.ies = wpa_s->ifmsh->mconf->ies;
 		params.ie_len = wpa_s->ifmsh->mconf->ie_len;
+		params.channel_type = wpa_s->ifmsh->mconf->channel_type;
 	}
 
 	wpa_msg(wpa_s, MSG_INFO, "joining mesh %s",
