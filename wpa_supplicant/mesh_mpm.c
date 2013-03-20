@@ -259,6 +259,12 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	params.aid = 1;
 	params.listen_interval = 100;
 	/* TODO: HT capabilities */
+	if (elems->ht_capabilities) {
+		if (copy_sta_ht_capab(data, sta, elems->ht_capabilities,
+				      elems->ht_capabilities_len))
+			return;
+		params.ht_capabilities = sta->ht_capabilities;
+	}
 	/* TODO: flags? drv_flags? */
 	params.flags |= WPA_STA_WMM;
 	params.flags_mask |= WPA_STA_AUTHENTICATED;
