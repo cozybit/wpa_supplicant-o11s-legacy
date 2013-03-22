@@ -327,6 +327,7 @@ int mesh_rsn_derive_mtk(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 {
 	u8 *ptr;
 	u8 *min, *max;
+	u8 smin[2], smax[2];
 	size_t nonce_len = sizeof(sta->my_nonce);
 	size_t lid_len = sizeof(sta->my_lid);
 
@@ -351,14 +352,18 @@ int mesh_rsn_derive_mtk(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 
 	/* FIXME memcmp here? */
 	if (os_memcmp(&sta->my_lid, &sta->peer_lid, lid_len) < 0) {
-		min = (u8*) &sta->my_lid;
-		max = (u8*) &sta->peer_lid;
+		smin[0] = (sta->my_lid >> 8) & 0xff;
+		smin[1] = sta->my_lid & 0xff;
+		smax[0] = (sta->peer_lid >> 8) & 0xff;
+		smax[1] = sta->peer_lid & 0xff;
 	} else {
-		min = (u8*) &sta->peer_lid;
-		max = (u8*) &sta->my_lid;
+		smin[0] = (sta->peer_lid >> 8) & 0xff;
+		smin[1] = sta->peer_lid & 0xff;
+		smax[0] = (sta->my_lid >> 8) & 0xff;
+		smax[1] = sta->my_lid  & 0xff;
 	}
-	os_memcpy(ptr, min, lid_len);
-	os_memcpy(ptr + lid_len, max, lid_len);
+	os_memcpy(ptr, smin, lid_len);
+	os_memcpy(ptr + lid_len, smax, lid_len);
 	ptr += 2 * lid_len;
 
 	/* SAE */
