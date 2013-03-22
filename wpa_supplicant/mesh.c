@@ -21,7 +21,6 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 
 void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 {
-	int i;
 	if (!ifmsh)
 		return;
 
@@ -147,16 +146,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 	}
 
-	/* Set the channel type */
-	if (wpa_s->conf->mesh_ht_mode == 1)
-		mconf->channel_type = MESH_CHAN_HT20;
-	else if (wpa_s->conf->mesh_ht_mode == 2)
-		mconf->channel_type = MESH_CHAN_HT40PLUS;
-	else if (wpa_s->conf->mesh_ht_mode == 3)
-		mconf->channel_type = MESH_CHAN_HT40MINUS;
-	else
-		mconf->channel_type = MESH_CHAN_NO_HT;
-
 	/* Reuse the code from ap.c, enable HT20 to be used for IE generation */
 	if (wpa_s->conf->mesh_ht_mode > 0 && wpa_s->hw.modes) {
 		struct hostapd_hw_modes *mode = NULL;
@@ -177,6 +166,19 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 				 HT_CAP_INFO_RX_STBC_MASK |
 				 HT_CAP_INFO_MAX_AMSDU_SIZE);
 		}
+	}
+
+	/* Set the default channel type to NO HT */
+	mconf->channel_type = MESH_CHAN_NO_HT;
+
+	/* Set the HT channel type only if HW supports this */
+	if (conf->ieee80211n) {
+		if (wpa_s->conf->mesh_ht_mode == 1)
+			mconf->channel_type = MESH_CHAN_HT20;
+		else if (wpa_s->conf->mesh_ht_mode == 2)
+			mconf->channel_type = MESH_CHAN_HT40PLUS;
+		else if (wpa_s->conf->mesh_ht_mode == 3)
+			mconf->channel_type = MESH_CHAN_HT40MINUS;
 	}
 
 	/* XXX: hack! this is so an MPM which correctly sets the ERP
