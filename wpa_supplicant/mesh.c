@@ -168,6 +168,10 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		}
 	}
 
+	/* Allow the setting of inactivity period for peer mesh STA */
+	if (ssid->ap_max_inactivity > AP_MAX_INACTIVITY)
+		bss->conf->ap_max_inactivity = ssid->ap_max_inactivity;
+
 	/* Set the default channel type to NO HT */
 	mconf->channel_type = MESH_CHAN_NO_HT;
 
