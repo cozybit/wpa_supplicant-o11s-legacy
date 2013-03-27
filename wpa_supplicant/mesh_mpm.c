@@ -720,7 +720,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	sta = ap_get_sta(hapd, rx_action->sa);
 	if (!sta)
 		return;
-	/* TODO check peer is sae_accepted */
+
+	/* peer is in sae_accepted? */
+	if (sta->sae->state != SAE_ACCEPTED)
+		return;
 
 	if (!sta->my_lid)
 		mesh_mpm_init_link(wpa_s, sta);
