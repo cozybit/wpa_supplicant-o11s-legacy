@@ -269,11 +269,11 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 		sta->sae->state = SAE_NOTHING;
 	}
 
+	sta->sae->state = SAE_COMMITTED;
+
 	buf = mesh_rsn_build_sae_commit(wpa_s, ssid, sta);
 	if (!buf)
 		return -1;
-
-	sta->sae->state = SAE_COMMITTED;
 
 	wpa_msg(wpa_s, MSG_DEBUG,
 		"AUTH: started authentication with SAE peer: "
