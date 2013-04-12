@@ -517,6 +517,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 				       HOSTAPD_LEVEL_DEBUG,
 				       "SAE confirm before commit");
 			resp = WLAN_STATUS_UNKNOWN_AUTH_TRANSACTION;
+			return;
 		}
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_DEBUG,
