@@ -227,11 +227,15 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* struct wmm_information_element *wmm; */
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
-	struct sta_info *sta = ap_sta_add(data, addr);
-
+	struct sta_info *sta;
 	int ret = 0;
-	if (!sta)
-		return;
+
+	sta = ap_get_sta(data, addr);
+	if (!sta) {
+		sta = ap_sta_add(data, addr);
+		if (!sta)
+			return;
+	}
 
 	/* initialize sta */
 	if (copy_supp_rates(wpa_s, sta, elems))
