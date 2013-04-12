@@ -10,6 +10,32 @@
 #include "crypto/aes_siv.h"
 #include "wpas_glue.h"
 
+#define MESH_AUTH_TIMEOUT 10
+#define MESH_AUTH_RETRY 3
+
+static void mesh_auth_timer(void *eloop_ctx, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct sta_info *sta = user_data;
+
+	if (sta == NULL)
+		return;
+
+	if (sta->sae->state != SAE_ACCEPTED) {
+		wpa_printf(MSG_DEBUG, "AUTH: Re-autenticate with "
+			   MACSTR " Number of Try (%d) ", MAC2STR(sta->addr),
+			   sta->sae_auth_retry);
+		if (sta->sae_auth_retry < MESH_AUTH_RETRY) {
+			mesh_rsn_auth_sae_sta(wpa_s, sta);
+		} else {
+			/* If exceed the number of tries, block the STA */
+			sta->plink_state = PLINK_BLOCKED;
+			sta->sae->state = SAE_NOTHING;
+		}
+		sta->sae_auth_retry++;
+	}
+}
+
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
 {
@@ -284,10 +310,9 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 	mesh_rsn_send_auth(wpa_s, sta->addr, wpa_s->own_addr,
 			   SAE_COMMITTED, WLAN_STATUS_SUCCESS, buf);
 
-	/* maybe MPM does this
-	eloop_register_timeout(SME_AUTH_TIMEOUT, 0, sme_auth_timer, wpa_s,
-			       NULL);
-			       */
+	eloop_register_timeout(MESH_AUTH_TIMEOUT, 0, mesh_auth_timer,
+			       wpa_s, sta);
+
 	wpabuf_free(buf);
 	return 0;
 }
