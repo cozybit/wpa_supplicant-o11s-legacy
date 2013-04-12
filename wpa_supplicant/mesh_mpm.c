@@ -487,6 +487,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_ESTAB);
 
+	/* Set the WLAN_STA_ASSOC flag here */
+	sta->flags |= WLAN_STA_ASSOC;
+
 	/* TODO
 	changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 	*/
