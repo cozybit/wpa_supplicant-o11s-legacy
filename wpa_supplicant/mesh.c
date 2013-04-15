@@ -258,6 +258,9 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	params.meshid_len = ssid->ssid_len;
 	params.freq = ssid->frequency;
 
+	if (ssid->mcast_rate)
+		params.mcast_rate = ssid->mcast_rate * 10;
+
 	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE) {
 		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
 		params.flags |= WPA_DRIVER_MESH_FLAG_AMPE;

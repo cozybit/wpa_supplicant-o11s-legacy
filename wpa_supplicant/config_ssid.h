@@ -545,6 +545,16 @@ struct wpa_ssid {
 	 */
 	int ap_max_inactivity;
 
+#ifdef CONFIG_MESH
+	/**
+	 * mcast_rate - the transmission rate for multicast/broadcast frame
+	 *
+	 * The transmission rate used by multicast/brodcast frame in mesh.
+	 * By default: If not defined, lowest transmission rate is used.
+	 */
+	int mcast_rate;
+#endif /* CONFIG_MESH */
+
 	/**
 	 * dtim_period - DTIM period in Beacon intervals
 	 * By default: 2
