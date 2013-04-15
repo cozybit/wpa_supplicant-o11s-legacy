@@ -1545,6 +1545,9 @@ static const struct parse_data ssid_fields[] = {
 #endif /* CONFIG_HT_OVERRIDES */
 	{ INT(ap_max_inactivity) },
 	{ INT(dtim_period) },
+#ifdef CONFIG_MESH
+	{ INT(mcast_rate) },
+#endif
 };
 
 #undef OFFSET

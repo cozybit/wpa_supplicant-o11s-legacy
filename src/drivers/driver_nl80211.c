@@ -7157,6 +7157,8 @@ static int wpa_driver_nl80211_join_mesh(
 		NLA_PUT(msg, NL80211_ATTR_MESH_ID, params->meshid_len,
 			params->meshid);
 	}
+	if (params->mcast_rate)
+		NLA_PUT_U32(msg, NL80211_ATTR_MCAST_RATE, params->mcast_rate);
 
 	wpa_printf(MSG_DEBUG, "  * flags=%08X", params->flags);
 
