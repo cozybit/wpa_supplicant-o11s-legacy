@@ -32,6 +32,10 @@
 #include "ap_drv_ops.h"
 #include "gas_serv.h"
 #include "sta_info.h"
+#ifdef CONFIG_MESH
+#include "../wpa_supplicant/mesh_mpm.h"
+#include "../wpa_supplicant/mesh_rsn.h"
+#endif
 
 static void ap_sta_remove_in_other_bss(struct hostapd_data *hapd,
 				       struct sta_info *sta);
@@ -203,6 +207,10 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	eloop_cancel_timeout(ap_handle_session_timer, hapd, sta);
 	eloop_cancel_timeout(ap_sta_deauth_cb_timeout, hapd, sta);
 	eloop_cancel_timeout(ap_sta_disassoc_cb_timeout, hapd, sta);
+#ifdef CONFIG_MESH
+	eloop_cancel_timeout(plink_timer, ELOOP_ALL_CTX, sta);
+	eloop_cancel_timeout(mesh_auth_timer, ELOOP_ALL_CTX, sta);
+#endif
 
 	ieee802_1x_free_station(sta);
 	wpa_auth_sta_deinit(sta->wpa_sm);

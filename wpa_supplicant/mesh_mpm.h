@@ -12,5 +12,6 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			struct rx_action *rx_action);
 void mesh_mpm_deinit(struct hostapd_iface *ifmsh);
 void mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr);
+void plink_timer(void *eloop_ctx, void *user_data);
 
 #endif /* MESH_MPM_H */
