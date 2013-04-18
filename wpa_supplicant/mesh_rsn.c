@@ -13,7 +13,7 @@
 #define MESH_AUTH_TIMEOUT 10
 #define MESH_AUTH_RETRY 3
 
-static void mesh_auth_timer(void *eloop_ctx, void *user_data)
+void mesh_auth_timer(void *eloop_ctx, void *user_data)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	struct sta_info *sta = user_data;
@@ -89,10 +89,13 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 static int auth_start_ampe(void *ctx, const u8 *addr)
 {
 	struct mesh_rsn *mesh_rsn = ctx;
+	struct hostapd_data *hapd = mesh_rsn->wpa_s->ifmsh->bss[0];
+	struct sta_info *sta = ap_get_sta(hapd, addr);
 
 	if (mesh_rsn->wpa_s->current_ssid->mode != WPAS_MODE_MESH)
 		return -1;
 
+	eloop_cancel_timeout(mesh_auth_timer, mesh_rsn->wpa_s, sta);
 	mesh_mpm_auth_peer(mesh_rsn->wpa_s, addr);
 	return 0;
 }
