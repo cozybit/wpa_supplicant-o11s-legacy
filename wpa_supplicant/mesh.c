@@ -21,7 +21,6 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 
 void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 {
-	int i;
 	if (!ifmsh)
 		return;
 
