@@ -1518,7 +1518,7 @@ int wpa_auth_sm_event(struct wpa_state_machine *sm, wpa_event event)
 		if (wpa_auth_start_ampe(sm->wpa_auth, sm->addr))
 			/* not mesh */
 			break;
-		return;
+		return 0;
 #endif
 	case WPA_ASSOC:
 		break;
