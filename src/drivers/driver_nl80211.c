@@ -3611,6 +3611,8 @@ static void wiphy_info_feature_flags(struct wiphy_info_data *info,
 
 	if (flags & NL80211_FEATURE_SK_TX_STATUS)
 		info->data_tx_status = 1;
+	else
+		info->data_tx_status = 1;
 
 	if (flags & NL80211_FEATURE_INACTIVITY_TIMER)
 		capa->flags |= WPA_DRIVER_FLAGS_INACTIVITY_TIMER;
