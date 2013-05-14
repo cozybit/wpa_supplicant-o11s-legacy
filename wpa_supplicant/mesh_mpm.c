@@ -732,9 +732,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	if (!sta)
 		return;
 
-	/* peer is in sae_accepted? */
-	if (sta->sae->state != SAE_ACCEPTED)
-		return;
+	/* peer is in sae_accepted? only for secure mesh */
+	if (mconf->security & MESH_CONF_SEC_AMPE)
+		if (sta->sae->state != SAE_ACCEPTED)
+			return;
 
 	if (!sta->my_lid)
 		mesh_mpm_init_link(wpa_s, sta);
