@@ -63,11 +63,10 @@ else
 	sudo wpa_cli -p$wpa_s_ctl set_network 0 mode '5'
 	sudo wpa_cli -p$wpa_s_ctl enable_network 0
 
-	# TODO: ok it'll connect, but won't change the channel yet
-
-	read
-	# say "connect" with right psk and key_mgmt
+	sleep 3
 	# check estab
+	sudo iw $iface station dump | grep ESTAB || fail "not in ESTAB!"
+	read
 fi
 
 sudo killall wpa_supplicant
