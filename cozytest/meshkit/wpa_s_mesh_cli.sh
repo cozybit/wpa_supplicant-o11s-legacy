@@ -5,12 +5,17 @@ fail() {
 	sudo killall wpa_supplicant
 	exit 1
 }
+
+wpa_s_cli() {
+	sudo wpa_cli -p$wpa_s_ctl $@
+}
+
 # exercise the wpa_cli mesh interface. meshkit will use this through wpa_ctrl.h
 # to trigger a wpa_supplicant mesh join. The Android platform will use the same
 # interface as exported in android/hardware/libhardware_legacy/wifi/wifi.c.
 
 # use ./$0 <iface> # to scan then join a mesh
-# or ./$0 <iface> create # create a new mesh
+# or ./$0 <iface> create # create a new mesh << do this first
 [ -z "$1" ] && { echo "need iface!"; exit 1; }
 [ "$2" = "create" ] && create="yes"
 
@@ -20,53 +25,50 @@ wpa_s_conf="/tmp/wpa_supplicant.conf_$iface"
 meshid=bazooka
 psk=seeeeecrit
 
-cat > $wpa_s_conf << EOF
-#ap_scan=1 scan for existing networks first
-#ap_scan=2 start BSS immediately
-ap_scan=2
-user_mpm=1
-ctrl_interface="$wpa_s_ctl"
-network={
-        ssid="$meshid"
-        mode=5
-	key_mgmt=SAE
-	psk="$psk"
-        frequency=2432
-}
-EOF
-
-# iface must be up for scan or join
-sudo ip link set $iface up
 sudo iw $iface mesh leave
 
+# spawn wpa_supplicant on boot / when framework turns on android
+# XXX: should be able to do this without an initial interface? It's fine,
+# meshkit can launch this
+sudo wpa_supplicant -C$wpa_s_ctl -i$iface -dd &
+sleep 1
+
+# need to be up for scan / mesh join
+sudo ip link set $iface up
+
+# we can add the network block immediately, the interface for joining or
+# creating is the same. MeshTest will call:
+# mesh <iface> <meshid> <channel>
+# so all we have are those ^^. need psk
+wpa_s_cli add_network
+wpa_s_cli set_network 0 ssid ''\"$meshid\"''
+wpa_s_cli set_network 0 psk ''\"$psk\"''
+wpa_s_cli set_network 0 key_mgmt 'SAE'
+# XXX: yes we need to set the mode, does IBSS/infra?
+wpa_s_cli set_network 0 mode '5'
+
 if [ ! -z "$create" ]; then
-	# should actually just spawn a wpa_supplicant, and hand wpa_cli a network here?
-	sudo wpa_supplicant -i$iface -C$wpa_s_ctl -c$wpa_s_conf -dd
+	# don't scan before joining
+	wpa_s_cli set ap_scan=2
+	wpa_s_cli set_network 0 frequency '2437'
 else
-	# hopefully user was smart enough to create the mesh first..
-	sudo wpa_supplicant -i$iface -C$wpa_s_ctl -dd &
-	sleep 1
-	sudo wpa_cli -p$wpa_s_ctl scan
-	sleep 1
+	# do scan before joining
+	wpa_s_cli set ap_scan=1
+fi
 
+wpa_s_cli enable_network 0
+
+if [ -z "$create" ]; then
+	# time for scanning
+	sleep 2
 	# grep for right meshid
-	found=`sudo wpa_cli -p$wpa_s_ctl scan_results | grep $meshid`
+	found=`wpa_s_cli scan_results | grep $meshid`
 	[ -z "$found" ] && fail "couldn't find peer mesh in scan results!"
-
-	# emulate user selecting MBSS and entering PSK
-	# similar to what android does
-	sudo wpa_cli -p$wpa_s_ctl add_network
-	sudo wpa_cli -p$wpa_s_ctl set_network 0 ssid ''\"$meshid\"''
-	sudo wpa_cli -p$wpa_s_ctl set_network 0 psk ''\"$psk\"''
-	sudo wpa_cli -p$wpa_s_ctl set_network 0 key_mgmt 'SAE'
-	# XXX: yes we need to set the mode, does IBSS/infra?
-	sudo wpa_cli -p$wpa_s_ctl set_network 0 mode '5'
-	sudo wpa_cli -p$wpa_s_ctl enable_network 0
-
 	sleep 3
 	# check estab
 	sudo iw $iface station dump | grep ESTAB || fail "not in ESTAB!"
-	read
 fi
+
+read
 
 sudo killall wpa_supplicant
