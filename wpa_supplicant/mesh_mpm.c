@@ -441,11 +441,16 @@ void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
 {
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
+
 	eloop_cancel_timeout(plink_timer, wpa_s, sta);
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_LISTEN);
 	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
 	sta->mpm_retries = 0;
 	sta->flags &= ~WLAN_STA_ASSOC;
+
+	if (conf->security == MESH_CONF_SEC_NONE)
+		mesh_mpm_plink_open(wpa_s, sta);
 }
 
 void plink_timer(void *eloop_ctx, void *user_data)
