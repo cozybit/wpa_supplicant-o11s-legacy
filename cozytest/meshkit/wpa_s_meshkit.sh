@@ -1,14 +1,38 @@
 #!/bin/bash
 
+cleanup() {
+	sudo killall wpa_supplicant
+	# clean up interface for next round of testing
+	sudo iw $iface interface del
+}
+
 fail() {
 	echo $@
-	sudo killall wpa_supplicant
+	cleanup
 	exit 1
 }
 
 wpa_s_cli() {
 	sudo wpa_cli -p$wpa_s_ctl $@
 }
+
+while getopts ":i:sc" opt; do
+	case $opt in
+		i)
+			iface=$OPTARG
+			;;
+		s)
+			secure=1
+			;;
+		c)
+			create=1
+			;;
+		*)
+			echo "wrong argument"
+			exit 1
+			;;
+	esac
+done
 
 # test the meshkit -> libwpa interface.
 # MeshTest will simply call
@@ -18,31 +42,31 @@ wpa_s_cli() {
 # join. The Android platform will use the same interface as exported in
 # android/hardware/libhardware_legacy/wifi/wifi.c.
 
-# use ./$0 <iface> # to scan then join a mesh
-# or ./$0 <iface> create # create a new mesh << do this first
-[ -z "$1" ] && { echo "need iface!"; exit 1; }
-[ "$2" = "create" ] && create="yes"
+# use ./$0 -i <iface> # to scan then join an open mesh
+# or ./$0 -i <iface>  -c # create a new mesh << do this first
+#
+# use -s in the above two examples for secure mesh
 
-iface=$1
 meshid=bazooka
 psk=seeeeecrit
 
-sudo iw $iface mesh leave
-sudo ip link set $iface up
+sudo mesh $iface up
+# give wpa_supplicant fork time to come up
+sleep 1
 
-# XXX: really need channel?
 # mesh $iface $meshid $chan $mesh_ttl $rssi_threshold $bcn_intvl $psk
-sudo mesh $iface up $meshid 1 10 -20 1000 $psk
-
-sleep 5
+if [ ! -z "$secure" ]; then
+	sudo mesh $iface join $meshid 1 10 -80 1000 $psk
+else
+	sudo mesh $iface join $meshid 1 10 -80 1000
+fi
 
 if [ -z "$create" ]; then
-	# check estab
-	echo "station dump"
-	sudo iw $iface station dump
+	# wait and check for estab
+	sleep 5
 	sudo iw $iface station dump | grep ESTAB || fail "not in ESTAB!"
 fi
 
-read
+read # leave creator idling here
 
-sudo killall wpa_supplicant
+cleanup
