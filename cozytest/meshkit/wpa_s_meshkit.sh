@@ -62,6 +62,7 @@ else
 fi
 
 if [ -z "$create" ]; then
+	sudo mesh $iface scan | grep -e MESH -e $meshid || fail "couldn't find $meshid!"
 	# wait and check for estab
 	sleep 5
 	sudo iw $iface station dump | grep ESTAB || fail "not in ESTAB!"
