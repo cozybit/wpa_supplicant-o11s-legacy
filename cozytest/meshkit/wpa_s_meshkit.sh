@@ -54,11 +54,11 @@ sudo mesh $iface up
 # give wpa_supplicant fork time to come up
 sleep 1
 
-# mesh $iface $meshid $chan $mesh_ttl $rssi_threshold $bcn_intvl $psk
+# mesh $iface $meshid $chan $mesh_ttl $bcn_intvl $psk
 if [ ! -z "$secure" ]; then
-	sudo mesh $iface join $meshid 1 10 -80 1000 $psk
+	sudo mesh $iface join $meshid 1 10 1000 $psk
 else
-	sudo mesh $iface join $meshid 1 10 -80 1000
+	sudo mesh $iface join $meshid 1 10 1000
 fi
 
 if [ -z "$create" ]; then
