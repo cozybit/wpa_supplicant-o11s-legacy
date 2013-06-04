@@ -508,7 +508,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 	u8 null_nonce[32] = {};
 	u8 ampe_eid;
 	u8 ampe_ie_len;
-	u8 *ampe_buf, *crypt = NULL;
+	u8 *ampe_buf = NULL, *crypt = NULL;
 	size_t crypt_len;
 	const u8 *aad[] = {sta->addr, wpa_s->mesh_rsn->auth->addr, cat};
 	const size_t aad_len[] = {ETH_ALEN, ETH_ALEN, (elems->mic - 2) - cat};
@@ -517,10 +517,6 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: missing mic ie");
 		return -1;
 	}
-
-	ampe_buf = elems->mic + elems->mic_len;
-	if (elems_len < ampe_buf - start)
-		return -1;
 
 	crypt_len = elems_len - (elems->mic - start);
 	if (crypt_len < 2) {
@@ -536,6 +532,14 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		goto free;
 	}
 
+	/* output cleartext */
+	ampe_buf = os_zalloc(crypt_len);
+	if (!ampe_buf) {
+		wpa_printf(MSG_ERROR, "Mesh RSN: out of memory");
+		ret = -ENOMEM;
+		goto free;
+	}
+
 	os_memcpy(crypt, elems->mic, crypt_len);
 
 	if (aes_siv_decrypt(sta->aek, crypt, crypt_len, 3,
@@ -545,8 +549,8 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		goto free;
 	}
 
-	ampe_eid = *ampe_buf++;
-	ampe_ie_len = *ampe_buf++;
+	ampe_eid = *ampe_buf;
+	ampe_ie_len = *(ampe_buf + 1);
 
 	if (ampe_eid != WLAN_EID_AMPE ||
 	    ampe_ie_len < sizeof(struct ieee80211_ampe_ie)) {
@@ -555,7 +559,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		goto free;
 	}
 
-	ampe = (struct ieee80211_ampe_ie *) ampe_buf;
+	ampe = (struct ieee80211_ampe_ie *) (ampe_buf + 2);
 	if (os_memcmp(ampe->peer_nonce, null_nonce, 32) != 0 &&
 	    os_memcmp(ampe->peer_nonce, sta->my_nonce, 32) != 0) {
 		wpa_msg(wpa_s, MSG_DEBUG, "Mesh RSN: invalid peer nonce");
@@ -569,5 +573,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 free:
 	if (crypt)
 		os_free(crypt);
+	if (ampe_buf)
+		os_free(ampe_buf);
 	return ret;
 }

@@ -5884,6 +5884,7 @@ static u32 sta_plink_state_nl80211(enum mesh_plink_state state)
 	case PLINK_BLOCKED:
 		return NL80211_PLINK_BLOCKED;
 	}
+	return NUM_NL80211_PLINK_STATES;
 }
 #endif /* CONFIG_MESH */
 
