@@ -1,9 +1,10 @@
 /*
  * WPA Supplicant - Basic mesh mode routines
- * Copyright (c) 2013, Thomas Pedersen <thomas@cozybit.com>
+ *
  * Copyright (c) 2013, cozybit, Inc.
  *
- * All rights reserved.
+ * This software may be distributed under the terms of the BSD license.
+ * See README for more details.
  */
 #include "mesh.h"
 #include "mesh_rsn.h"

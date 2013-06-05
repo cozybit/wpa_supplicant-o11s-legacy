@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2013, cozybit, Inc.
+ * Copyright (c) 2013 Cozybit, Inc.
  *
- * All right reserved.
+ * This software may be distributed under the terms of the BSD license.
+ * See README for more details.
  */
+
 #include "mesh_mpm.h"
 #include "mesh_rsn.h"
 

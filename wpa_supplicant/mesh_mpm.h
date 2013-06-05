@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2013 Cozybit, Inc.
+ *
+ * This software may be distributed under the terms of the BSD license.
+ * See README for more details.
+ */
+
 #ifndef MESH_MPM_H
 #define MESH_MPM_H
 #include "mesh.h"

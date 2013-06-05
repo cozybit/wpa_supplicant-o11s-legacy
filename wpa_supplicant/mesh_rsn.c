@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2013 Cozybit, Inc.
+ *
+ * This software may be distributed under the terms of the BSD license.
+ * See README for more details.
+ */
+
 #include "mesh_rsn.h"
 #include "rsn_supp/wpa.h"
 #include "rsn_supp/wpa_ie.h"
