@@ -771,6 +771,7 @@ struct wpa_driver_mesh_join_params {
 #define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000004
 #define WPA_DRIVER_MESH_FLAG_AMPE	0x00000008
 	unsigned int flags;
+	enum mesh_channel_type channel_type;
 };
 
 /**
