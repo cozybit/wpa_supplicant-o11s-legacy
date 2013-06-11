@@ -305,6 +305,16 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 		sta->sae->state = SAE_NOTHING;
 	}
 
+	if ((sta->sae->state == SAE_ACCEPTED) &&
+	    (sta->flags & WLAN_STA_AUTH)) {
+		wpa_msg(wpa_s, MSG_DEBUG, "SAE Authentication with "
+			MACSTR" has completed prior to STA notification",
+			MAC2STR(sta->addr));
+		/* start AMPE */
+		wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
+		return -1;
+	}
+
 	buf = mesh_rsn_build_sae_commit(wpa_s, ssid, sta);
 	if (!buf)
 		return -1;
