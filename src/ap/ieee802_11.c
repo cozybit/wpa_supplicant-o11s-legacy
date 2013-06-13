@@ -452,18 +452,6 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		sta->sae->state = SAE_NOTHING;
 	}
 
-#ifdef CONFIG_MESH
-	if (sta->sae->state == SAE_ACCEPTED) {
-		if (auth_transaction == 1 || auth_transaction == 2) {
-			wpa_printf(MSG_DEBUG, "SAE: remove the STA "
-				   "(" MACSTR ") doing reauthentication",
-				   MAC2STR(sta->addr));
-			ap_free_sta(hapd, sta);
-		}
-		return;
-	}
-#endif
-
 	if (auth_transaction == 1) {
 		const u8 *token = NULL;
 		size_t token_len = 0;
@@ -666,6 +654,19 @@ static void handle_auth(struct hostapd_data *hapd,
 		return;
 	}
 
+#ifdef CONFIG_MESH
+	/* remove mesh STA doing re-authentication */
+	sta = ap_get_sta(hapd, mgmt->sa);
+	if (sta && sta->sae) {
+		if (sta->sae->state == SAE_ACCEPTED &&
+		    (auth_transaction == 1 || auth_transaction == 2)) {
+			wpa_printf(MSG_DEBUG, "SAE: remove the STA "
+				   "(" MACSTR ") doing reauthentication",
+				   MAC2STR(sta->addr));
+			ap_free_sta(hapd, sta);
+		}
+	}
+#endif
 	sta = ap_sta_add(hapd, mgmt->sa);
 	if (!sta) {
 		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
