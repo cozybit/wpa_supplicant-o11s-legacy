@@ -201,6 +201,12 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 		return;
 	}
 
+	if (!(sta->flags & WLAN_STA_NOTIFY)) {
+		wpa_msg(wpa_s, MSG_DEBUG, "Driver has not inserted "
+			MACSTR " station yet", MAC2STR(sta->addr));
+		return;
+	}
+
 	/* TODO: should do nothing if this sta is already authenticated, but
 	 * the AP code already sets this flag. */
 	sta->flags |= WLAN_STA_AUTH;
@@ -284,6 +290,9 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			MAC2STR(addr), ret);
 		return;
 	}
+
+	/* Set the flag after successfully inserting the STA */
+	sta->flags |= WLAN_STA_NOTIFY;
 
 	if (conf->security == MESH_CONF_SEC_NONE)
 		mesh_mpm_plink_open(wpa_s, sta);
@@ -741,6 +750,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	if (mconf->security & MESH_CONF_SEC_AMPE)
 		if (sta->sae->state != SAE_ACCEPTED)
 			return;
+
+	/* Don't process any frame if the STA is not inserted by the driver */
+	if (!(sta->flags & WLAN_STA_NOTIFY))
+		return;
 
 	if (!sta->my_lid)
 		mesh_mpm_init_link(wpa_s, sta);
