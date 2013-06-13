@@ -498,8 +498,9 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			}
 		}
 	} else if (auth_transaction == 2) {
-		if (sta->sae->state != SAE_COMMITTED &&
-		    sta->sae->state != SAE_CONFIRMED) {
+		if ((sta->sae->state != SAE_COMMITTED &&
+		     sta->sae->state != SAE_CONFIRMED) ||
+		    !(sta->sae->peer_commit_scalar)) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_DEBUG,
