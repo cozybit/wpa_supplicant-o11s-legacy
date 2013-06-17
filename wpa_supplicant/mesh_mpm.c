@@ -191,9 +191,7 @@ void
 mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 {
 	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
-	struct hostapd_sta_add_params params;
 	struct sta_info *sta;
-	int ret;
 
 	sta = ap_get_sta(data, addr);
 	if (!sta) {
@@ -207,37 +205,36 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 
 	mesh_rsn_init_ampe_sta(wpa_s, sta);
 
-	os_memset(&params, 0, sizeof(params));
-	params.addr = sta->addr;
-	params.flags = (WPA_STA_AUTHENTICATED | WPA_STA_AUTHORIZED);
-	params.set = 1;
-
 	wpa_msg(wpa_s, MSG_DEBUG, "MPM authenticating " MACSTR,
 				  MAC2STR(sta->addr));
-	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
-		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
-			MAC2STR(sta->addr), ret);
 
+	/* NOTE: we may get here even before the NEW_PEER_CANDIDATE_EVENT is
+	 * received, ie. the SAE code added the station, but didn't insert it
+	 * into the driver. To solve this, simply defer inserting the station
+	 * into the driver until the first peering open frame has been received
+	 * and sta->flag & WLAN_STA_AUTH. Therefore, the result of an
+	 * authentication indication should just be to initiate peering. */
 	mesh_mpm_plink_open(wpa_s, sta);
 }
 
-void
-wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
-		       struct ieee802_11_elems *elems)
+static int
+mesh_mpm_insert_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta,
+		    struct ieee802_11_elems *elems)
 {
 	struct hostapd_sta_add_params params;
-	/* struct wmm_information_element *wmm; */
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
-	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
-	struct sta_info *sta = ap_sta_add(data, addr);
-
+	/* struct wmm_information_element *wmm; */
 	int ret = 0;
+
 	if (!sta)
-		return;
+		return -ENOENT;
+
+	if (!(sta->flags & WLAN_STA_AUTH))
+		return -EACCES;
 
 	/* initialize sta */
-	if (copy_supp_rates(wpa_s, sta, elems))
-		return;
+	if ((ret = copy_supp_rates(wpa_s, sta, elems)))
+		return ret;
 
 	/* TODO: our beacons currently don't include this */
 	/*
@@ -249,13 +246,11 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	sta->qosinfo = wmm->qos_info;
 	*/
 
-	mesh_mpm_init_link(wpa_s, sta);
-
 	/* insert into driver */
 	os_memset(&params, 0, sizeof(params));
 	params.supp_rates = sta->supported_rates;
 	params.supp_rates_len = sta->supported_rates_len;
-	params.addr = addr;
+	params.addr = sta->addr;
 	params.plink_state = sta->plink_state;
 	/* not used for mesh */
 	params.aid = 1;
@@ -264,20 +259,29 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* TODO: flags? drv_flags? */
 	params.flags |= WPA_STA_WMM;
 	params.flags_mask |= WPA_STA_AUTHENTICATED;
-	if (conf->security == MESH_CONF_SEC_NONE) {
-		params.flags |= WPA_STA_AUTHORIZED;
-		params.flags |= WPA_STA_AUTHENTICATED;
-	} else {
+	params.flags |= WPA_STA_AUTHORIZED;
+	params.flags |= WPA_STA_AUTHENTICATED;
+	if (conf->security == MESH_CONF_SEC_AMPE) {
 		sta->flags |= WLAN_STA_MFP;
 		params.flags |= WPA_STA_MFP;
 	}
 
 	//params.qosinfo = sta->qosinfo;
-	if ((ret = wpa_drv_sta_add(wpa_s, &params))) {
+	/* XXX: inserted?? */
+	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
-			MAC2STR(addr), ret);
-		return;
-	}
+			MAC2STR(sta->addr), ret);
+
+	return ret;
+}
+
+void
+wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
+		       struct ieee802_11_elems *elems)
+{
+	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
+	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
+	struct sta_info *sta = ap_sta_add(hapd, addr);
 
 	if (conf->security == MESH_CONF_SEC_NONE)
 		mesh_mpm_plink_open(wpa_s, sta);
@@ -512,10 +516,14 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 {
+	if (!sta->plink_state)
+		mesh_mpm_init_link(wpa_s, sta);
+
 	eloop_cancel_timeout(plink_timer, wpa_s, sta);
 	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
+	/* XXX: will fail since not in driver yet :( */
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
 }
 
@@ -749,6 +757,9 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 		    (sta->peer_lid && sta->peer_lid != plid))
 			event = OPN_IGNR;
 		else {
+			/* TODO: only insert sta if not already in driver. Just
+			 * ignore errors for now :| */
+			mesh_mpm_insert_sta(wpa_s, sta, &elems);
 			sta->peer_lid = plid;
 			event = OPN_ACPT;
 		}
