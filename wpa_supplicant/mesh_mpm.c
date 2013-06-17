@@ -281,7 +281,8 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 
 	if (conf->security == MESH_CONF_SEC_NONE)
 		mesh_mpm_plink_open(wpa_s, sta);
-	else
+	/* authentication not already initiated from peer commit */
+	else if (!sta->sae)
 		mesh_rsn_auth_sae_sta(wpa_s, sta);
 }
 
