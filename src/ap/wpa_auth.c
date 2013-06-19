@@ -1429,6 +1429,12 @@ void wpa_remove_ptk(struct wpa_state_machine *sm)
 	eloop_cancel_timeout(wpa_rekey_ptk, sm->wpa_auth, sm);
 }
 
+#ifdef CONFIG_MESH
+void wpa_remove_mesh_sta_gtk(struct wpa_state_machine *sm)
+{
+	wpa_auth_set_key(sm->wpa_auth, 0, WPA_ALG_NONE, sm->addr, 4, NULL, 0);
+}
+#endif
 
 int wpa_auth_sm_event(struct wpa_state_machine *sm, wpa_event event)
 {

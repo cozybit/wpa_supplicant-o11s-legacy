@@ -76,6 +76,7 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 {
 	struct mesh_rsn *mesh_rsn = ctx;
 	u8 seq[6];
+	int set_tx = 1;
 
 	os_memset(seq, 0, sizeof(seq));
 
@@ -89,8 +90,11 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 	}
 	wpa_hexdump_key(MSG_DEBUG, "AUTH: set_key - key", key, key_len);
 
+	if (idx == 4)
+		set_tx = 0;
+
 	return wpa_drv_set_key(mesh_rsn->wpa_s, alg, addr, idx,
-			       1, seq, 6, key, key_len);
+			       set_tx, seq, 6, key, key_len);
 }
 
 static int auth_start_ampe(void *ctx, const u8 *addr)

@@ -664,6 +664,7 @@ static void handle_auth(struct hostapd_data *hapd,
 			wpa_printf(MSG_DEBUG, "SAE: remove the STA "
 				   "(" MACSTR ") doing reauthentication",
 				   MAC2STR(sta->addr));
+			wpa_remove_mesh_sta_gtk(sta->wpa_sm);
 			ap_free_sta(hapd, sta);
 		}
 	}

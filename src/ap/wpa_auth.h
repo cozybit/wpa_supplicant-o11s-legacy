@@ -240,6 +240,9 @@ typedef enum {
 	WPA_REAUTH_EAPOL, WPA_ASSOC_FT
 } wpa_event;
 void wpa_remove_ptk(struct wpa_state_machine *sm);
+#ifdef CONFIG_MESH
+void wpa_remove_mesh_sta_gtk(struct wpa_state_machine *sm);
+#endif
 int wpa_auth_sm_event(struct wpa_state_machine *sm, wpa_event event);
 void wpa_auth_sm_notify(struct wpa_state_machine *sm);
 void wpa_gtk_rekey(struct wpa_authenticator *wpa_auth);

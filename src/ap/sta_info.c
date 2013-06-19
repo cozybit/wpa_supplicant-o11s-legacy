@@ -433,6 +433,9 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		mlme_deauthenticate_indication(
 			hapd, sta,
 			WLAN_REASON_PREV_AUTH_NOT_VALID);
+#ifdef CONFIG_MESH
+		wpa_remove_mesh_sta_gtk(sta->wpa_sm);
+#endif
 		ap_free_sta(hapd, sta);
 		break;
 	}
