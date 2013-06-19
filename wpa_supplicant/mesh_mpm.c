@@ -161,13 +161,17 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 
 	sta->plink_state = state;
 
+	wpa_msg(wpa_s, MSG_DEBUG, "MPM set " MACSTR " into %d",
+				  MAC2STR(sta->addr), state);
+
+	if (!(sta->flags & WLAN_STA_DRIVER))
+		return;
+
 	os_memset(&params, 0, sizeof(params));
 	params.addr = sta->addr;
 	params.plink_state = state;
 	params.set = 1;
 
-	wpa_msg(wpa_s, MSG_DEBUG, "MPM set " MACSTR " into %d",
-				  MAC2STR(sta->addr), state);
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
 			MAC2STR(sta->addr), ret);
@@ -267,10 +271,12 @@ mesh_mpm_insert_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	}
 
 	//params.qosinfo = sta->qosinfo;
-	/* XXX: inserted?? */
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to insert " MACSTR ": %d",
 			MAC2STR(sta->addr), ret);
+
+	if (!ret)
+		sta->flags |= WLAN_STA_DRIVER;
 
 	return ret;
 }
@@ -523,7 +529,6 @@ mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
-	/* XXX: will fail since not in driver yet :( */
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
 }
 
@@ -757,9 +762,8 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 		    (sta->peer_lid && sta->peer_lid != plid))
 			event = OPN_IGNR;
 		else {
-			/* TODO: only insert sta if not already in driver. Just
-			 * ignore errors for now :| */
-			mesh_mpm_insert_sta(wpa_s, sta, &elems);
+			if (!(sta->flags & WLAN_STA_DRIVER))
+				mesh_mpm_insert_sta(wpa_s, sta, &elems);
 			sta->peer_lid = plid;
 			event = OPN_ACPT;
 		}
