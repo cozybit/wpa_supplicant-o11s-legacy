@@ -193,9 +193,7 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 		return;
 	}
 
-	/* TODO: verify this peer matches MBSS before inserting! */
-	/* TODO: process in SAE, which will allocate station if authenticated. */
-	/* just immediately allocate peer for now, and insert into driver */
+	/* TODO: verify this peer matches MBSS! */
 	wpa_mesh_new_mesh_peer(wpa_s, addr, &elems);
 }
 

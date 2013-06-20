@@ -444,6 +444,8 @@ static void wpa_supplicant_cleanup(struct wpa_supplicant *wpa_s)
 	wpa_s->ibss_rsn = NULL;
 #endif /* CONFIG_IBSS_RSN */
 
+/* TODO: deinit mesh */
+
 	sme_deinit(wpa_s);
 
 #ifdef CONFIG_AP
