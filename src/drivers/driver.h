@@ -1847,6 +1847,14 @@ struct wpa_driver_ops {
 			     int total_flags, int flags_or, int flags_and);
 
 	/**
+	 * set_type - Set interface type
+	 * @priv: Private driver interface data
+	 * @type: New interface type
+	 * Returns: 0 on success, <0 on failure
+	 */
+	int (*set_type)(void *priv, enum wpa_driver_if_type type);
+
+	/**
 	 * set_tx_queue_params - Set TX queue parameters
 	 * @priv: Private driver interface data
 	 * @queue: Queue number (0 = VO, 1 = VI, 2 = BE, 3 = BK)

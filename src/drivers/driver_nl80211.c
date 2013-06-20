@@ -8292,6 +8292,16 @@ static enum nl80211_iftype wpa_driver_nl80211_if_type(
 }
 
 
+static int wpa_driver_nl80211_set_type(void *priv,
+				       enum wpa_driver_if_type type)
+{
+	struct i802_bss *bss = priv;
+	enum nl80211_iftype nlmode = wpa_driver_nl80211_if_type(type);
+
+	return wpa_driver_nl80211_set_mode(bss, nlmode);
+}
+
+
 #ifdef CONFIG_P2P
 
 static int nl80211_addr_in_use(struct nl80211_global *global, const u8 *addr)
@@ -9550,6 +9560,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.sta_remove = wpa_driver_nl80211_sta_remove,
 	.hapd_send_eapol = wpa_driver_nl80211_hapd_send_eapol,
 	.sta_set_flags = wpa_driver_nl80211_sta_set_flags,
+	.set_type = wpa_driver_nl80211_set_type,
 #ifdef HOSTAPD
 	.hapd_init = i802_init,
 	.hapd_deinit = i802_deinit,

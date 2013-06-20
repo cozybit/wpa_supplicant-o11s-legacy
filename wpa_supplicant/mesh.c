@@ -75,10 +75,14 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	struct mesh_conf *mconf;
 	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
 	static int default_groups[] = { 19, 20, 21, 25, 26 };
+	int ret = 0;
 
 	if (!wpa_s->conf->user_mpm)
 		/* not much for us to do here */
 		return 0;
+
+	if ((ret = wpa_drv_set_iftype(wpa_s, WPA_IF_MESH)))
+		return ret;
 
 	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
 	 * mesh, and init MPM in general */

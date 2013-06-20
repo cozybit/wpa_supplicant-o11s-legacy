@@ -337,6 +337,15 @@ static inline int wpa_drv_sta_set_flags(struct wpa_supplicant *wpa_s,
 	return -1;
 }
 
+static inline int wpa_drv_set_iftype(struct wpa_supplicant *wpa_s,
+				     enum wpa_driver_if_type type)
+{
+	if (wpa_s->driver->set_type) {
+		return wpa_s->driver->set_type(wpa_s->drv_priv, type);
+	}
+	return -1;
+}
+
 static inline int wpa_drv_set_supp_port(struct wpa_supplicant *wpa_s,
 					int authorized)
 {
