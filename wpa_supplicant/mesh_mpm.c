@@ -181,12 +181,8 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 void
 mesh_mpm_deinit(struct hostapd_iface *ifmsh)
 {
-	struct hostapd_data *data = ifmsh->bss[0];
-
 	/* TODO: notify peers we're leaving */
 	/* TODO: deregister frames and events */
-
-	hostapd_free_stas(data);
 }
 
 /* for mesh_rsn to indicate this peer has completed authentication, and we're

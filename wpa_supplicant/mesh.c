@@ -33,10 +33,6 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 	}
 
 	mesh_mpm_deinit(ifmsh);
-	/* take care of shared data */
-	/* FIX: ugly failures when NA to mesh */
-	hostapd_interface_deinit(ifmsh);
-	hostapd_interface_free(ifmsh);
 	return;
 }
 
