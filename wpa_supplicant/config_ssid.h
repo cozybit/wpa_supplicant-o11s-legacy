@@ -302,7 +302,7 @@ struct wpa_ssid {
 	 * 4 = P2P Group Formation (used internally; not in configuration
 	 * files)
 	 *
-	 * 5 = Mesh
+	 * 5 = 802.11s Mesh
 	 *
 	 * Note: IBSS can only be used with key_mgmt NONE (plaintext and
 	 * static WEP) and key_mgmt=WPA-NONE (fixed group key TKIP/CCMP). In

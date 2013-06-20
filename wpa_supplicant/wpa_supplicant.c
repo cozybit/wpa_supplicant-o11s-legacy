@@ -1733,6 +1733,12 @@ void wpa_supplicant_deauthenticate(struct wpa_supplicant *wpa_s,
 		zero_addr = 1;
 	}
 
+#ifdef CONFIG_MESH
+	if (wpa_s->current_ssid->mode == WPAS_MODE_MESH)
+		/* mesh doesn't actually care about deauth */
+		goto clear_connection;
+#endif /* CONFIG_MESH */
+
 	if (addr) {
 		wpa_drv_deauthenticate(wpa_s, addr, reason_code);
 		os_memset(&event, 0, sizeof(event));
@@ -1743,6 +1749,7 @@ void wpa_supplicant_deauthenticate(struct wpa_supplicant *wpa_s,
 			addr = NULL;
 	}
 
+clear_connection:
 	wpa_supplicant_clear_connection(wpa_s, addr);
 }
 

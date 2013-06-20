@@ -7207,6 +7207,37 @@ nla_put_failure:
 }
 
 
+static int wpa_driver_nl80211_leave_mesh(void *priv)
+{
+	struct i802_bss *bss = priv;
+	struct wpa_driver_nl80211_data *drv = bss->drv;
+	int ret = -1;
+	struct nl_msg *msg;
+
+	msg = nlmsg_alloc();
+	if (!msg)
+		return -1;
+
+	wpa_printf(MSG_DEBUG, "nl80211: leave mesh (ifindex=%d)",
+		   drv->ifindex);
+	nl80211_cmd(drv, msg, 0, NL80211_CMD_LEAVE_MESH);
+
+	NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, drv->ifindex);
+
+	ret = send_and_recv_msgs(drv, msg, NULL, NULL);
+	msg = NULL;
+	if (ret) {
+		wpa_printf(MSG_DEBUG, "nl80211: leave mesh failed ret=%d (%s)",
+			   ret, strerror(-ret));
+		goto nla_put_failure;
+	}
+	ret = 0;
+
+nla_put_failure:
+	nlmsg_free(msg);
+	return ret;
+}
+
 static int wpa_driver_nl80211_associate(
 	void *priv, struct wpa_driver_associate_params *params)
 {
@@ -9501,6 +9532,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.authenticate = wpa_driver_nl80211_authenticate,
 	.associate = wpa_driver_nl80211_associate,
 	.join_mesh = wpa_driver_nl80211_join_mesh,
+	.leave_mesh = wpa_driver_nl80211_leave_mesh,
 	.global_init = nl80211_global_init,
 	.global_deinit = nl80211_global_deinit,
 	.init2 = wpa_driver_nl80211_init,
