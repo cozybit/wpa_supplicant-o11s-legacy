@@ -404,7 +404,8 @@ static int hostapd_flush_old_stations(struct hostapd_data *hapd, u16 reason)
 	}
 	wpa_dbg(hapd->msg_ctx, MSG_DEBUG, "Deauthenticate all stations");
 	os_memset(addr, 0xff, ETH_ALEN);
-	hostapd_drv_sta_deauth(hapd, addr, reason);
+	if (!hostapd_is_mesh(hapd))
+		hostapd_drv_sta_deauth(hapd, addr, reason);
 	hostapd_free_stas(hapd);
 
 	return ret;

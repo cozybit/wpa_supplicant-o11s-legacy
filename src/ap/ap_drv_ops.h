@@ -72,6 +72,7 @@ hostapd_get_hw_feature_data(struct hostapd_data *hapd, u16 *num_modes,
 			    u16 *flags);
 int hostapd_driver_commit(struct hostapd_data *hapd);
 int hostapd_drv_none(struct hostapd_data *hapd);
+int hostapd_is_mesh(struct hostapd_data *hapd);
 int hostapd_driver_scan(struct hostapd_data *hapd,
 			struct wpa_driver_scan_params *params);
 struct wpa_scan_results * hostapd_driver_get_scan_results(

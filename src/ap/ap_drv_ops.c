@@ -600,6 +600,15 @@ int hostapd_drv_none(struct hostapd_data *hapd)
 }
 
 
+int hostapd_is_mesh(struct hostapd_data *hapd)
+{
+	/* TODO: add real iftypes */
+#ifdef CONFIG_MESH
+	return (!!hapd->iface->mconf);
+#endif /* CONFIG_MESH */
+	return 0;
+}
+
 int hostapd_driver_scan(struct hostapd_data *hapd,
 			struct wpa_driver_scan_params *params)
 {
