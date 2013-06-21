@@ -449,19 +449,19 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 	int ret = 0;
 
 	if (AES_BLOCK_SIZE + 2 + sizeof(*ampe) + 2 > wpabuf_tailroom(buf)) {
-		wpa_printf(MSG_ERROR, "protect frame: buffer too small\n");
+		wpa_printf(MSG_ERROR, "protect frame: buffer too small");
 		return -EINVAL;
 	}
 
 	ampe_ie = os_zalloc(2 + sizeof(*ampe));
 	if (!ampe_ie) {
-		wpa_printf(MSG_ERROR, "protect frame: out of memory\n");
+		wpa_printf(MSG_ERROR, "protect frame: out of memory");
 		return -ENOMEM;
 	}
 
 	mic_ie = os_zalloc(2 + AES_BLOCK_SIZE);
 	if (!mic_ie) {
-		wpa_printf(MSG_ERROR, "protect frame: out of memory\n");
+		wpa_printf(MSG_ERROR, "protect frame: out of memory");
 		ret = -ENOMEM;
 		goto free;
 	}
@@ -491,7 +491,7 @@ int mesh_rsn_protect_frame(struct mesh_rsn *rsn,
 	mic_payload = (u8 *) wpabuf_put(buf, 2 + sizeof(*ampe) + AES_BLOCK_SIZE);
 	if (aes_siv_encrypt(sta->aek, ampe_ie, 2 + sizeof(*ampe), 3,
 			    aad, aad_len, mic_payload)) {
-		wpa_printf(MSG_ERROR, "protect frame: failed to encrypt\n");
+		wpa_printf(MSG_ERROR, "protect frame: failed to encrypt");
 		ret = -ENOMEM;
 		goto free;
 	}

@@ -195,7 +195,7 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 
 	sta = ap_get_sta(data, addr);
 	if (!sta) {
-		wpa_msg(wpa_s, MSG_ERROR, "no such mesh peer!\n");
+		wpa_msg(wpa_s, MSG_ERROR, "no such mesh peer!");
 		return;
 	}
 
@@ -490,7 +490,7 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	u8 seq[6] = {};
 
 	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
-		MACSTR " established\n", MAC2STR(sta->addr));
+		MACSTR " established", MAC2STR(sta->addr));
 
 	if (conf->security & MESH_CONF_SEC_AMPE) {
 		/* key index != 0 is used to set key type */
@@ -796,7 +796,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 			event = CLS_ACPT;
 		break;
 	default:
-		wpa_msg(wpa_s, MSG_ERROR, "Mesh plink: unknown frame subtype\n");
+		wpa_msg(wpa_s, MSG_ERROR, "Mesh plink: unknown frame subtype");
 		return;
 	}
 	mesh_mpm_fsm(wpa_s, sta, event);
