@@ -266,7 +266,7 @@ void wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s)
 	wpa_msg(wpa_s, MSG_INFO, "leaving mesh");
 	ret = wpa_drv_leave_mesh(wpa_s);
 	if (ret)
-		wpa_msg(wpa_s, MSG_ERROR, "mesh leave error=%d\n", ret);
+		wpa_msg(wpa_s, MSG_ERROR, "mesh leave error=%d", ret);
 
 	wpa_drv_set_operstate(wpa_s, 0);
 }
