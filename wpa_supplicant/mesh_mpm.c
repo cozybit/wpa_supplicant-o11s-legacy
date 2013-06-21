@@ -208,6 +208,9 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 	wpa_msg(wpa_s, MSG_DEBUG, "MPM authenticating " MACSTR,
 				  MAC2STR(sta->addr));
 
+	/* in case this is a re-auth */
+	mesh_mpm_init_link(wpa_s, sta);
+
 	/* NOTE: we may get here even before the NEW_PEER_CANDIDATE_EVENT is
 	 * received, ie. the SAE code added the station, but didn't insert it
 	 * into the driver. To solve this, simply defer inserting the station
