@@ -148,6 +148,28 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 	}
 
+	/* Reuse the code from ap.c, enable HT20 to be used for IE generation */
+	if (wpa_s->hw.modes) {
+		struct hostapd_hw_modes *mode = NULL;
+		int i;
+		for (i = 0; i < wpa_s->hw.num_modes; i++) {
+			if (wpa_s->hw.modes[i].mode == conf->hw_mode) {
+				mode = &wpa_s->hw.modes[i];
+				break;
+			}
+		}
+
+		if (mode && mode->ht_capab) {
+			conf->ieee80211n = 1;
+			conf->ht_capab |= mode->ht_capab &
+				(HT_CAP_INFO_GREEN_FIELD |
+				 HT_CAP_INFO_SHORT_GI20MHZ |
+				 HT_CAP_INFO_SHORT_GI40MHZ |
+				 HT_CAP_INFO_RX_STBC_MASK |
+				 HT_CAP_INFO_MAX_AMSDU_SIZE);
+		}
+	}
+
 	/* XXX: hack! this is so an MPM which correctly sets the ERP
 	 * mandatory rates as BSSBasicRateSet doesn't reject us. We
 	 * could add a new hw_mode HOSTAPD_MODE_IEEE80211G_ERP, but

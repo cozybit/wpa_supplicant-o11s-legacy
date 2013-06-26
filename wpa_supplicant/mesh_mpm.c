@@ -226,6 +226,7 @@ mesh_mpm_insert_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 {
 	struct hostapd_sta_add_params params;
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
+	struct hostapd_data *data = wpa_s->ifmsh->bss[0];
 	/* struct wmm_information_element *wmm; */
 	int ret = 0;
 
@@ -259,6 +260,12 @@ mesh_mpm_insert_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	params.aid = 1;
 	params.listen_interval = 100;
 	/* TODO: HT capabilities */
+	if (elems->ht_capabilities) {
+		if (copy_sta_ht_capab(data, sta, elems->ht_capabilities,
+				      elems->ht_capabilities_len))
+			return;
+		params.ht_capabilities = sta->ht_capabilities;
+	}
 	/* TODO: flags? drv_flags? */
 	params.flags |= WPA_STA_WMM;
 	params.flags_mask |= WPA_STA_AUTHENTICATED;
@@ -305,6 +312,8 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
+	u8 ht_cap[2 + 26];
+	u8 ht_ope[2 + 22];
 	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
@@ -404,6 +413,12 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		mesh_rsn_get_pmkid(sta, (u8 *) wpabuf_put(buf, PMKID_LEN));
 
 	/* TODO HT IEs */
+	if (ifmsh->conf->ieee80211n) {
+		pos = hostapd_eid_ht_capabilities(bss, ht_cap);
+		wpabuf_put_data(buf, ht_cap, pos - ht_cap);
+		pos = hostapd_eid_ht_operation(bss, ht_ope);
+		wpabuf_put_data(buf, ht_ope, pos - ht_ope);
+	}
 
 	if (ampe && mesh_rsn_protect_frame(wpa_s->mesh_rsn, sta, cat, buf)) {
 		wpa_msg(wpa_s, MSG_INFO,
