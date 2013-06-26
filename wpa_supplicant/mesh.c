@@ -239,7 +239,6 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	os_memset(&params, 0, sizeof(params));
 	params.meshid = ssid->ssid;
 	params.meshid_len = ssid->ssid_len;
-	params.freq = ssid->frequency;
 
 	if (ssid->mcast_rate)
 		params.mcast_rate = ssid->mcast_rate * 10;

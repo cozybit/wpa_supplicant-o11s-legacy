@@ -7198,7 +7198,6 @@ static int wpa_driver_nl80211_join_mesh(
 		goto nla_put_failure;
 	}
 	ret = 0;
-	bss->freq = params->freq ? params->freq : 2432;
 	wpa_printf(MSG_DEBUG, "nl80211: mesh join request send successfully");
 
 nla_put_failure:
