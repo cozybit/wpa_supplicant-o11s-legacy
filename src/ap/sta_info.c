@@ -374,6 +374,7 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		sta->timeout_next = STA_REMOVE;
 		wpa_dbg(hapd->msg_ctx, MSG_DEBUG, "Timeout, remove STA " MACSTR,
 			MAC2STR(sta->addr));
+		wpa_remove_mesh_sta_gtk(sta->wpa_sm);
 	}
 
 	if (sta->timeout_next == STA_NULLFUNC &&
