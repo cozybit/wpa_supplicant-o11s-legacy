@@ -368,6 +368,14 @@ void ap_handle_timer(void *eloop_ctx, void *timeout_ctx)
 		return;
 	}
 
+	if (hostapd_is_mesh(hapd) &&
+	    (sta->timeout_next == STA_NULLFUNC ||
+	     sta->timeout_next == STA_DISASSOC)) {
+		sta->timeout_next = STA_REMOVE;
+		wpa_dbg(hapd->msg_ctx, MSG_DEBUG, "Timeout, remove STA " MACSTR,
+			MAC2STR(sta->addr));
+	}
+
 	if (sta->timeout_next == STA_NULLFUNC &&
 	    (sta->flags & WLAN_STA_ASSOC)) {
 		wpa_printf(MSG_DEBUG, "  Polling STA");
