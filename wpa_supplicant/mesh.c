@@ -32,7 +32,9 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 		os_free(ifmsh->mconf);
 	}
 
-	mesh_mpm_deinit(ifmsh);
+	hostapd_interface_deinit(ifmsh);
+	hostapd_interface_free(ifmsh);
+
 	return;
 }
 
