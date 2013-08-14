@@ -178,13 +178,6 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	return;
 }
 
-void
-mesh_mpm_deinit(struct hostapd_iface *ifmsh)
-{
-	/* TODO: notify peers we're leaving */
-	/* TODO: deregister frames and events */
-}
-
 /* for mesh_rsn to indicate this peer has completed authentication, and we're
  * ready to start AMPE */
 void
