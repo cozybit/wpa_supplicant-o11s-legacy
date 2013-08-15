@@ -7174,8 +7174,10 @@ static int wpa_driver_nl80211_join_mesh(
 			params->ies);
 	}
 	/* WPA_DRIVER_MESH_FLAG_OPEN_AUTH is treated as default by nl80211 */
-	if (params->flags & WPA_DRIVER_MESH_FLAG_SAE_AUTH)
+	if (params->flags & WPA_DRIVER_MESH_FLAG_SAE_AUTH) {
 		NLA_PUT_FLAG(msg, NL80211_MESH_SETUP_USERSPACE_AUTH);
+		NLA_PUT_U8(msg, NL80211_MESH_SETUP_AUTH_PROTOCOL, AUTH_PROTO_SAE);
+	}
 	if (params->flags & WPA_DRIVER_MESH_FLAG_AMPE)
 		NLA_PUT_FLAG(msg, NL80211_MESH_SETUP_USERSPACE_AMPE);
 	if (params->flags & WPA_DRIVER_MESH_FLAG_USER_MPM)
