@@ -1006,6 +1006,12 @@ enum wifi_display_subelem {
 #define MESH_PATH_METRIC_AIRTIME	1
 #define MESH_PATH_METRIC_VENDOR		255
 
+enum mesh_config_auth_proto {
+	AUTH_PROTO_NONE = 0x0,
+	AUTH_PROTO_SAE = 0x1,
+	AUTH_PROTO_8021X = 0x2,
+};
+
 #define OUI_BROADCOM 0x00904c /* Broadcom (Epigram) */
 
 #define VENDOR_HT_CAPAB_OUI_TYPE 0x33 /* 00-90-4c:0x33 */
