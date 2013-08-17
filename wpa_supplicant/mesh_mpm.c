@@ -794,3 +794,15 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	}
 	mesh_mpm_fsm(wpa_s, sta, event);
 }
+
+int mesh_deactivate_sta(struct hostapd_data *hapd,
+			struct sta_info *sta, void *ctx)
+{
+	if (!sta->plink_state)
+		return 0;
+
+	mesh_mpm_send_plink_action(ctx, sta, PLINK_CLOSE, 0);
+	wpa_printf(MSG_DEBUG, "Mesh MPM: send plink close to " MACSTR,
+		   MAC2STR(sta->addr));
+	return 0;
+}

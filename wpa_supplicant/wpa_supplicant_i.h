@@ -532,6 +532,7 @@ struct wpa_supplicant {
 #ifdef CONFIG_MESH
 	struct hostapd_iface *ifmsh;
 	struct mesh_rsn *mesh_rsn;
+	char mesh_joined; /* use to indicate whether we have join the mesh */
 #endif /* CONFIG_MESH */
 
 	unsigned int off_channel_freq;
