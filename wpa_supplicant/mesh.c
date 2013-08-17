@@ -179,6 +179,8 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			goto out_free;
 	}
 
+	wpa_s->mesh_joined = 0;
+
 	return 0;
 out_free:
 	wpa_supplicant_mesh_deinit(wpa_s);
@@ -253,6 +255,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	ret = wpa_drv_join_mesh(wpa_s, &params);
 	if (ret)
 		wpa_msg(wpa_s, MSG_ERROR, "mesh join error=%d", ret);
+	else
+		wpa_s->mesh_joined = 1;
 
 	/* hostapd sets the interface down until we associate */
 	wpa_drv_set_operstate(wpa_s, 1);
@@ -264,6 +268,13 @@ out:
 void wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s)
 {
 	int ret = 0;
+	struct hostapd_data *bss;
+
+	/* Send all the peering close frame to all mesh STAs before leaving */
+	if (wpa_s->mesh_joined) {
+		bss = wpa_s->ifmsh->bss[0];
+		ap_for_each_sta(bss, mesh_deactivate_sta, wpa_s);
+	}
 
 	wpa_msg(wpa_s, MSG_INFO, "leaving mesh");
 	ret = wpa_drv_leave_mesh(wpa_s);

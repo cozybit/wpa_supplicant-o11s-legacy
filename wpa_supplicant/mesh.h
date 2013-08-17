@@ -32,4 +32,6 @@ void wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s);
 void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			  const u8 *ies, int ie_len);
 void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh);
+int mesh_deactivate_sta(struct hostapd_data *hapd,
+			struct sta_info *sta, void *ctx);
 #endif /* MESH_H */
