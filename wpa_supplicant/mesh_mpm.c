@@ -225,7 +225,8 @@ mesh_mpm_insert_sta(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	if (!sta)
 		return -ENOENT;
 
-	if (!(sta->flags & WLAN_STA_AUTH))
+	if (!(sta->flags & WLAN_STA_AUTH) &&
+	    (conf->security & MESH_CONF_SEC_AMPE))
 		return -EACCES;
 
 	/* initialize sta */
