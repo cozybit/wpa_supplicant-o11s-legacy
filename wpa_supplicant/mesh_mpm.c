@@ -652,9 +652,10 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 }
 
 void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
-			struct rx_action *rx_action)
+			const struct ieee80211_mgmt *mgmt,
+			size_t len)
 {
-	unsigned char action_field;
+	u8 action_field;
 	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
 	struct mesh_conf *mconf = wpa_s->ifmsh->mconf;
 	struct sta_info *sta;
@@ -666,18 +667,18 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	size_t ie_len;
 	int ret;
 
-
-	if (rx_action->category != WLAN_ACTION_SELF_PROTECTED)
+	if (mgmt->u.action.category != WLAN_ACTION_SELF_PROTECTED)
 		return;
 
-	/* action code, mesh id and peering mgmt */
-	if (rx_action->len < 1 + 2 + 2)
+	action_field = mgmt->u.action.u.slf_prot_action.action;
+
+	ies = mgmt->u.action.u.slf_prot_action.variable;
+	ie_len = (const u8 *) mgmt + len - mgmt->u.action.u.slf_prot_action.variable;
+
+	/* at least expect mesh id and peering mgmt */
+	if (ie_len < 2 + 2)
 		return;
 
-	action_field = rx_action->data[0];
-
-	ies = rx_action->data + 1;
-	ie_len = rx_action->len - 1;
 	if (action_field == PLINK_OPEN || action_field == PLINK_CONFIRM) {
 		ies += 2;	/* capability */
 		ie_len -= 2;
@@ -710,7 +711,7 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	/* TODO check rateset */
 
-	sta = ap_get_sta(hapd, rx_action->sa);
+	sta = ap_get_sta(hapd, mgmt->sa);
 	if (!sta)
 		return;
 
@@ -725,7 +726,8 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 
 	if (mconf->security & MESH_CONF_SEC_AMPE)
 		if (mesh_rsn_process_ampe(wpa_s, sta, &elems,
-					  rx_action->data - 1, ies, ie_len))
+					  &mgmt->u.action.category,
+					  ies, ie_len))
 			return;
 
 	if (sta->plink_state == PLINK_BLOCKED)

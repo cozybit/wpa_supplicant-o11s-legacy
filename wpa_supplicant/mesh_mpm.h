@@ -9,7 +9,8 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 		      struct rx_mgmt *rx_mgmt);
 void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
-			struct rx_action *rx_action);
+			const struct ieee80211_mgmt *mgmt,
+			size_t len);
 void mesh_mpm_deinit(struct hostapd_iface *ifmsh);
 void mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr);
 

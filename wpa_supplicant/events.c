@@ -2776,8 +2776,8 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_MESH
 	if (wpa_s->ifmsh)
-		mesh_mpm_action_rx(wpa_s, &data->rx_action);
-#endif
+		mesh_mpm_action_rx(wpa_s, mgmt, len);
+#endif /* CONFIG_MESH */
 }
 
 
