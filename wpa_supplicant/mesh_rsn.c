@@ -8,6 +8,7 @@
 #include "crypto/random.h"
 #include "crypto/aes.h"
 #include "crypto/aes_siv.h"
+#include "wpas_glue.h"
 
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
@@ -20,7 +21,8 @@ static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 }
 
 
-static const u8 * auth_get_psk(void *ctx, const u8 *addr, const u8 *prev_psk)
+static const u8 * auth_get_psk(void *ctx, const u8 *addr,
+			       const u8 *p2p_dev_addr, const u8 *prev_psk)
 {
 	struct mesh_rsn *mesh_rsn = ctx;
 	struct hostapd_data *hapd = mesh_rsn->wpa_s->ifmsh->bss[0];
@@ -489,7 +491,7 @@ int mesh_rsn_process_ampe(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	ampe_buf = elems->mic + elems->mic_len;
+	ampe_buf = (u8 *) elems->mic + elems->mic_len;
 	if (elems_len < ampe_buf - start)
 		return -1;
 
