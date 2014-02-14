@@ -468,7 +468,7 @@ static void wpa_driver_wext_event_wireless(struct wpa_driver_wext_data *drv,
 				drv->assoc_resp_ies = NULL;
 				wpa_supplicant_event(drv->ctx, EVENT_DISASSOC,
 						     NULL);
-			
+
 			} else {
 				wpa_driver_wext_event_assoc_ies(drv);
 				wpa_supplicant_event(drv->ctx, EVENT_ASSOC,
@@ -1568,7 +1568,7 @@ static int wpa_driver_wext_get_range(void *priv)
 		drv->capa.max_scan_ssids = 1;
 
 		wpa_printf(MSG_DEBUG, "  capabilities: key_mgmt 0x%x enc 0x%x "
-			   "flags 0x%x",
+			   "flags 0x%lx",
 			   drv->capa.key_mgmt, drv->capa.enc, drv->capa.flags);
 	} else {
 		wpa_printf(MSG_DEBUG, "SIOCGIWRANGE: too old (short) data - "

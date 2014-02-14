@@ -8737,7 +8737,7 @@ static int wpa_driver_nl80211_join_mesh(
 	if (!msg)
 		return -1;
 
-	if (wpa_driver_nl80211_set_mode(&drv->first_bss,
+	if (wpa_driver_nl80211_set_mode(drv->first_bss,
 					NL80211_IFTYPE_MESH_POINT))
 		return -1;
 
@@ -11712,7 +11712,7 @@ static int wpa_driver_nl80211_status(void *priv, char *buf, size_t buflen)
 				  "capa.key_mgmt=0x%x\n"
 				  "capa.enc=0x%x\n"
 				  "capa.auth=0x%x\n"
-				  "capa.flags=0x%x\n"
+				  "capa.flags=0x%lx\n"
 				  "capa.max_scan_ssids=%d\n"
 				  "capa.max_sched_scan_ssids=%d\n"
 				  "capa.sched_scan_supported=%d\n"

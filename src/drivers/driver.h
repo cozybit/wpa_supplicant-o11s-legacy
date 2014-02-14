@@ -841,7 +841,7 @@ struct wpa_driver_mesh_join_params {
 	int meshid_len;
 	int *basic_rates;
 	int mcast_rate;
-	char *ies;
+	u8 *ies;
 	int ie_len;
 	int freq;
 	struct wpa_driver_mesh_bss_params conf;
