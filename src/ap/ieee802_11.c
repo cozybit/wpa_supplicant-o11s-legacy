@@ -754,7 +754,7 @@ static void handle_auth(struct hostapd_data *hapd,
 #ifdef CONFIG_MESH
 		if (sta->wpa_sm == NULL)
 			sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
-							sta->addr);
+							sta->addr, NULL);
 		if (sta->wpa_sm == NULL) {
 			wpa_printf(MSG_DEBUG, "FT: Failed to initialize WPA "
 				   "state machine");
