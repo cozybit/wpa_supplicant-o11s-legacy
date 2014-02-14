@@ -4426,7 +4426,9 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 
 static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 {
-	if (bss->nl_mgmt == NULL)
+	int ret = 0;
+
+	if (nl80211_alloc_mgmt_handle(bss))
 		return -1;
 
 	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with mesh "
@@ -4437,23 +4439,20 @@ static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 				   (WLAN_FC_TYPE_MGMT << 2) |
 				   (WLAN_FC_STYPE_AUTH << 4),
 				   NULL, 0) < 0)
-		goto out_err;
 
 	/* Mesh peering open */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x01", 2) < 0)
-		goto out_err;
+		ret = -1;
 	/* Mesh peering confirm */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x02", 2) < 0)
-		goto out_err;
+		ret = -1;
 	/* Mesh peering close */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x03", 2) < 0)
-		goto out_err;
+		ret = -1;
 
-	return 0;
-out_err:
-	eloop_unregister_read_sock(nl_socket_get_fd(bss->nl_mgmt));
-	nl_destroy_handles(&bss->nl_mgmt);
-	return -1;
+	nl80211_mgmt_handle_register_eloop(bss);
+
+	return ret;
 }
 
 static int nl80211_register_spurious_class3(struct i802_bss *bss)
@@ -8984,14 +8983,15 @@ done:
 		nl80211_mgmt_unsubscribe(bss, "mode change");
 	}
 
-	if (!bss->in_deinit && !is_ap_interface(nlmode) &&
-	    nl80211_mgmt_subscribe_non_ap(bss) < 0)
-		wpa_printf(MSG_DEBUG, "nl80211: Failed to register Action "
-			   "frame processing - ignore for now");
-
 	if (is_mesh_interface(nlmode))
 		if (nl80211_mgmt_subscribe_mesh(bss))
 			return -1;
+
+	if (!bss->in_deinit && !is_ap_interface(nlmode) &&
+	    !is_mesh_interface(nlmode) &&
+	    nl80211_mgmt_subscribe_non_ap(bss) < 0)
+		wpa_printf(MSG_DEBUG, "nl80211: Failed to register Action "
+			   "frame processing - ignore for now");
 
 	return 0;
 }
