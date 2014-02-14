@@ -591,6 +591,10 @@ struct ieee80211_mgmt {
 					 * Entries (optional) */
 					u8 variable[0];
 				} STRUCT_PACKED bss_tm_query;
+				struct {
+					u8 action; /* 15 */
+					u8 variable[0];
+				} STRUCT_PACKED slf_prot_action;
 			} u;
 		} STRUCT_PACKED action;
 	} u;
