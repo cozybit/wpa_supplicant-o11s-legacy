@@ -116,6 +116,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	ifmsh->conf = conf;
 
 	ifmsh->bss[0]->max_num_sta = 10;
+	os_strlcpy(bss->conf->iface, wpa_s->ifname, sizeof(bss->conf->iface));
 
 	mconf = mesh_config_create(ssid);
 	if (!mconf)
