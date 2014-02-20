@@ -134,6 +134,7 @@ wpa_auth_send_eapol(struct wpa_authenticator *wpa_auth, const u8 *addr,
 				       encrypt);
 }
 
+#ifdef CONFIG_MESH
 static inline int wpa_auth_start_ampe(struct wpa_authenticator *wpa_auth,
 				      const u8 *addr)
 {
@@ -141,6 +142,7 @@ static inline int wpa_auth_start_ampe(struct wpa_authenticator *wpa_auth,
 		return -1;
 	return wpa_auth->cb.start_ampe(wpa_auth->cb.ctx, addr);
 }
+#endif /* CONFIG_MESH */
 
 int wpa_auth_for_each_sta(struct wpa_authenticator *wpa_auth,
 			  int (*cb)(struct wpa_state_machine *sm, void *ctx),
