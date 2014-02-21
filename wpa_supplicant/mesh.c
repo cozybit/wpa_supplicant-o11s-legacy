@@ -112,6 +112,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		goto out_free;
 
 	bss->conf = *conf->bss;
+	bss->conf->start_disabled = 1;
 	bss->iconf = conf;
 	ifmsh->conf = conf;
 
