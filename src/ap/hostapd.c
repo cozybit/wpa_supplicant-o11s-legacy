@@ -671,6 +671,9 @@ static int hostapd_setup_bss(struct hostapd_data *hapd, int first)
 	if (conf->wmm_enabled < 0)
 		conf->wmm_enabled = hapd->iconf->ieee80211n;
 
+#ifdef CONFIG_MESH
+	if (hapd->iface->mconf == NULL)
+#endif /* CONFIG_MESH */
 	hostapd_flush_old_stations(hapd, WLAN_REASON_PREV_AUTH_NOT_VALID);
 	hostapd_set_privacy(hapd, 0);
 
@@ -1114,6 +1117,13 @@ int hostapd_setup_interface_complete(struct hostapd_iface *iface, int err)
 			return res;
 #endif /* NEED_AP_MLME */
 
+#ifdef CONFIG_MESH
+		if (iface->mconf != NULL) {
+			wpa_printf(MSG_DEBUG, "%s: Mesh channel configuration will be "
+				   "while joining the mesh network.", iface->bss[0]->conf->iface);
+		} else
+#endif /* CONFIG_MESH */
+
 		if (hostapd_set_freq(hapd, hapd->iconf->hw_mode, iface->freq,
 				     hapd->iconf->channel,
 				     hapd->iconf->ieee80211n,
@@ -1166,6 +1176,9 @@ int hostapd_setup_interface_complete(struct hostapd_iface *iface, int err)
 	}
 	hapd = iface->bss[0];
 
+#ifdef CONFIG_MESH
+	if (iface->mconf == NULL)
+#endif /* CONFIG_MESH */
 	hostapd_tx_queue_params(iface);
 
 	ap_list_init(iface);
