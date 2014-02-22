@@ -1086,7 +1086,10 @@ wpa_supplicant_pick_new_network(struct wpa_supplicant *wpa_s)
 				continue;
 			if (ssid->mode == IEEE80211_MODE_IBSS ||
 			    ssid->mode == IEEE80211_MODE_AP ||
-			    ssid->mode == IEEE80211_MODE_MESH)
+#ifdef CONFIG_MESH
+			    ssid->mode == IEEE80211_MODE_MESH ||
+#endif /* CONFIG_MESH */
+			    0)
 				return ssid;
 		}
 	}
