@@ -1369,6 +1369,14 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 		 */
 		return 1;
 	} else {
+#ifdef CONFIG_MESH
+		// TODO Check if we're handling a mesh interface
+		if (wpa_s->wpa_state == WPA_COMPLETED) {
+			wpa_msg(wpa_s, MSG_INFO, "Avoiding mesh join because "
+				"we already have connectivity.");
+			return 0;
+		}
+#endif
 		wpa_dbg(wpa_s, MSG_DEBUG, "No suitable network found");
 		ssid = wpa_supplicant_pick_new_network(wpa_s);
 		if (ssid) {

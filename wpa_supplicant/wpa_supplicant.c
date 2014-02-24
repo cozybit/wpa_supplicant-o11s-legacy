@@ -1372,6 +1372,8 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 			return;
 		}
 		wpa_s->current_bss = bss;
+		/* We joined the mesh network ~= WPA_COMPLETED */
+		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 #else /* CONFIG_MESH */
 		wpa_msg(wpa_s, MSG_ERROR, "mesh mode support not included in "
 			"the build");
