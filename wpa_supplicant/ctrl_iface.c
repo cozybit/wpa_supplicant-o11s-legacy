@@ -2326,6 +2326,41 @@ static int wpa_supplicant_ctrl_iface_scan_results(
 	return pos - buf;
 }
 
+#ifdef CONFIG_MESH
+static int wpa_supplicant_ctrl_iface_mesh_group_add(
+	struct wpa_supplicant *wpa_s, char *cmd)
+{
+        int id;
+        struct wpa_ssid *ssid;
+
+	id = atoi(cmd);
+	wpa_printf(MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_ADD id=%d", id);
+
+	ssid = wpa_config_get_network(wpa_s->conf, id);
+	if (ssid == NULL) {
+		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Could not find "
+			   "network id=%d", id);
+			return -1;
+	}
+	if (ssid->mode != 5) {
+		wpa_printf(MSG_DEBUG, "CTRL_IFACE: Cannot use "
+		"MESH_GROUP_ADD on a non mesh network");
+		return -1;
+	}
+
+	wpa_supplicant_select_network(wpa_s, ssid);
+	return 0;
+}
+
+static int wpa_supplicant_ctrl_iface_mesh_group_remove(
+	struct wpa_supplicant *wpa_s, char *cmd)
+{
+	// TODO Implement remove command
+	wpa_printf(MSG_ERROR, "CTRL_IFACE: mesh_group_remove "
+		   "not implemented yet!");
+	return -1;
+}
+#endif /* CONFIG_MESH */
 
 static int wpa_supplicant_ctrl_iface_select_network(
 	struct wpa_supplicant *wpa_s, char *cmd)
@@ -6003,7 +6038,12 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 			reply_len = -1;
 #endif /* CONFIG_IBSS_RSN */
 #ifdef CONFIG_MESH
-		/* hmm some kind of mesh join command here */
+	} else if (os_strncmp(buf, "MESH_GROUP_ADD ", 15) == 0) {
+		if (wpa_supplicant_ctrl_iface_mesh_group_add(wpa_s, buf + 15))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "MESH_GROUP_REMOVE ", 16) == 0) {
+		if (wpa_supplicant_ctrl_iface_mesh_group_remove(wpa_s, buf + 16))
+			reply_len = -1;
 #endif /* CONFIG_MESH */
 #ifdef CONFIG_P2P
 	} else if (os_strncmp(buf, "P2P_FIND ", 9) == 0) {
