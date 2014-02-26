@@ -7464,8 +7464,10 @@ static int wpa_driver_nl80211_sta_add(void *priv,
 			params->vht_capabilities);
 	}
 
-	wpa_printf(MSG_DEBUG, "  * capability=0x%x", params->capability);
-	NLA_PUT_U16(msg, NL80211_ATTR_STA_CAPABILITY, params->capability);
+	if (params->capability) {
+		wpa_printf(MSG_DEBUG, "  * capability=0x%x", params->capability);
+		NLA_PUT_U16(msg, NL80211_ATTR_STA_CAPABILITY, params->capability);
+	}
 
 	if (params->ext_capab) {
 		wpa_hexdump(MSG_DEBUG, "  * ext_capab",
