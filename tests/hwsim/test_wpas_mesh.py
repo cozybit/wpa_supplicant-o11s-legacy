@@ -75,4 +75,22 @@ def test_wpas_mesh_mode_scan(dev, apdev):
     time.sleep(3)
     check_scan(dev[0], "use_id=1")
 
+def test_wpas_mesh_open(dev, apdev):
+
+    id = dev[0].add_network()
+    dev[0].set_network(id, "mode", "5")
+    dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
+    dev[0].set_network(id, "key_mgmt", "NONE")
+    dev[0].set_network(id, "frequency", "2412")
+    dev[0].select_network(id)  # TODO We should call the group_add instead!!
+
+    id = dev[1].add_network()
+    dev[1].set_network(id, "mode", "5")
+    dev[1].set_network_quoted(id, "ssid", "wpas-mesh-open")
+    dev[1].set_network(id, "key_mgmt", "NONE")
+    dev[1].set_network(id, "frequency", "2412")
+    dev[1].select_network(id)  # TODO We should call the group_add instead!!
+
+    time.sleep(15)
+
  
