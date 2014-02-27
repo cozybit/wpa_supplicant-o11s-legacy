@@ -4439,6 +4439,7 @@ static int nl80211_mgmt_subscribe_mesh(struct i802_bss *bss)
 				   (WLAN_FC_TYPE_MGMT << 2) |
 				   (WLAN_FC_STYPE_AUTH << 4),
 				   NULL, 0) < 0)
+		ret = -1;
 
 	/* Mesh peering open */
 	if (nl80211_register_action_frame(bss, (u8 *) "\x0f\x01", 2) < 0)
