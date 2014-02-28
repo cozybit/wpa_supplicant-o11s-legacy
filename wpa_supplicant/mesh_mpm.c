@@ -538,6 +538,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case OPN_RJCT:
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
+			/* fall-through */
 		case CLS_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
@@ -564,6 +565,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		case OPN_RJCT:
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
+			/* fall-through */
 		case CLS_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			if (!reason)
