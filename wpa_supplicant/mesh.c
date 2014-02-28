@@ -257,3 +257,18 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 out:
 	return ret;
 }
+
+int wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s)
+{
+	int ret = 0;
+
+	wpa_msg(wpa_s, MSG_INFO, "leaving mesh");
+	ret = wpa_drv_leave_mesh(wpa_s);
+
+        if (ret)
+                wpa_msg(wpa_s, MSG_ERROR, "mesh leave error=%d\n", ret);
+
+	wpa_drv_set_operstate(wpa_s, 1);
+
+	return ret;
+}

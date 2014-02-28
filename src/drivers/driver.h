@@ -2725,12 +2725,17 @@ struct wpa_driver_ops {
 	/**
 	 * join_mesh - Join a mesh network
 	 * @priv: Private driver interface data
-	 * @setup: Mesh setup parameters
-	 * @conf: Mesh configuration parameters
+	 * @params: Mesh configuration parameters
 	 * Returns: 0 on success, -1 on failure
 	 */
-	/* XXX: maybe just take a wpa_driver_associate_params? */
 	int (*join_mesh)(void *priv, struct wpa_driver_mesh_join_params *params);
+
+	/**
+ 	 * leave_mesh - Leave a mesh network
+ 	 * @priv: Private driver interface data
+ 	 * Returns 0 on success, -1 on failure
+ 	 */
+	int (*leave_mesh)(void *priv);
 };
 
 

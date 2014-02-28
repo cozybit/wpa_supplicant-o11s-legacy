@@ -2348,6 +2348,7 @@ static int wpa_supplicant_ctrl_iface_mesh_group_add(
 		return -1;
 	}
 
+	/* TODO: should we write our own group_add function */
 	wpa_supplicant_select_network(wpa_s, ssid);
 	return 0;
 }
@@ -2355,10 +2356,32 @@ static int wpa_supplicant_ctrl_iface_mesh_group_add(
 static int wpa_supplicant_ctrl_iface_mesh_group_remove(
 	struct wpa_supplicant *wpa_s, char *cmd)
 {
-	// TODO Implement remove command
-	wpa_printf(MSG_ERROR, "CTRL_IFACE: mesh_group_remove "
-		   "not implemented yet!");
-	return -1;
+	if (!cmd) {
+		wpa_printf(MSG_ERROR, "CTRL_IFACE: MESH_GROUP_REMOVE ifname "
+			   "cannot be empty");
+		return -1;
+	}
+
+	/* TODO: we only support a single mesh iface for now */
+// wpa_s->ifmsh->bss[0]->conf.iface
+	if (os_strcmp(cmd, wpa_s->ifname) != 0) {
+		wpa_printf(MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_REMOVE unknown "
+			   "interface name: %s", cmd);
+		return -1;
+	}
+
+	wpa_printf(MSG_DEBUG, "CTRL_IFACE: MESH_GROUP_REMOVE ifname=%s", cmd);
+
+	wpa_s->reassociate = 0;
+	wpa_s->disconnected = 1;
+	wpa_supplicant_cancel_sched_scan(wpa_s);
+	wpa_supplicant_cancel_scan(wpa_s);
+
+//	wpa_supplicant_mesh_group_remove(wpa_s);
+	wpa_supplicant_deauthenticate(wpa_s,
+				      WLAN_REASON_DEAUTH_LEAVING);
+
+	return 0;
 }
 #endif /* CONFIG_MESH */
 
@@ -6041,8 +6064,8 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "MESH_GROUP_ADD ", 15) == 0) {
 		if (wpa_supplicant_ctrl_iface_mesh_group_add(wpa_s, buf + 15))
 			reply_len = -1;
-	} else if (os_strncmp(buf, "MESH_GROUP_REMOVE ", 16) == 0) {
-		if (wpa_supplicant_ctrl_iface_mesh_group_remove(wpa_s, buf + 16))
+	} else if (os_strncmp(buf, "MESH_GROUP_REMOVE ", 18) == 0) {
+		if (wpa_supplicant_ctrl_iface_mesh_group_remove(wpa_s, buf + 18))
 			reply_len = -1;
 #endif /* CONFIG_MESH */
 #ifdef CONFIG_P2P
