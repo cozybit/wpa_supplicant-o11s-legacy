@@ -502,6 +502,27 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 		     MAC2STR(sta->addr));
 }
 
+static void mesh_mpm_plink_closed(struct wpa_supplicant *wpa_s,
+				 struct sta_info *sta, int reason)
+{
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
+
+	if (!reason)
+		reason = WLAN_REASON_MESH_CLOSE_RCVD;
+
+	eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
+	sta->mpm_close_reason = reason;
+
+	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
+	        MACSTR " closed with reason %d\n",
+		MAC2STR(sta->addr), reason);
+
+	wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
+		     MAC2STR(sta->addr));
+
+	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+
+}
 /* initiate peering with station */
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
