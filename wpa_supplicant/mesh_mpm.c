@@ -497,6 +497,9 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 	/* TODO
 	changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 	*/
+	/* Send ctrl event */
+	wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_PEER_CONNECTED MACSTR,
+		     MAC2STR(sta->addr));
 }
 
 /* initiate peering with station */
