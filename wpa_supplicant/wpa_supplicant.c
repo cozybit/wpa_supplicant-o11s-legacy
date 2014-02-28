@@ -1372,8 +1372,12 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 			return;
 		}
 		wpa_s->current_bss = bss;
-		/* We joined the mesh network ~= WPA_COMPLETED */
-		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
+		/* We joined the mesh network ~= WPA_ASSOCIATED */
+		wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATED);
+		wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_GROUP_STARTED
+			     "ssid=\"%s\" id=%d",
+			     wpa_ssid_txt(ssid->ssid, ssid->ssid_len),
+			     ssid->id);
 #else /* CONFIG_MESH */
 		wpa_msg(wpa_s, MSG_ERROR, "mesh mode support not included in "
 			"the build");
@@ -1913,6 +1917,15 @@ void wpa_supplicant_deauthenticate(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_TDLS
 	wpa_tdls_teardown_peers(wpa_s->wpa);
 #endif /* CONFIG_TDLS */
+
+#ifdef CONFIG_MESH
+	if (wpa_s->ifmsh) {
+
+		wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_GROUP_REMOVED
+			     "%s", wpa_s->ifname);
+		wpa_supplicant_leave_mesh(wpa_s);
+	}
+#endif /* CONFIG_MESH */
 
 	if (addr) {
 		wpa_drv_deauthenticate(wpa_s, addr, reason_code);

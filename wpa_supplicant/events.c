@@ -1371,9 +1371,9 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 	} else {
 #ifdef CONFIG_MESH
 		// TODO Check if we're handling a mesh interface
-		if (wpa_s->wpa_state == WPA_COMPLETED) {
+		if (wpa_s->wpa_state == WPA_ASSOCIATED) {
 			wpa_msg(wpa_s, MSG_INFO, "Avoiding mesh join because "
-				"we already have connectivity.");
+				"we already joined one.");
 			return 0;
 		}
 #endif
