@@ -164,8 +164,8 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	params.plink_state = state;
 	params.set = 1;
 
-	wpa_msg(wpa_s, MSG_DEBUG, "MPM set " MACSTR " into %d",
-				  MAC2STR(sta->addr), state);
+	wpa_msg(wpa_s, MSG_DEBUG, "MPM set " MACSTR " into %s",
+				  MAC2STR(sta->addr), mplstate[state]);
 	if ((ret = wpa_drv_sta_add(wpa_s, &params)))
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
 			MAC2STR(sta->addr), ret);
