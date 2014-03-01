@@ -11,7 +11,7 @@
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
-	wpa_supplicant_mesh_iface_deinit(wpa_s->ifmsh);
+	wpa_supplicant_mesh_iface_deinit(wpa_s, wpa_s->ifmsh);
 	wpa_s->ifmsh = NULL;
 	os_free(wpa_s->mesh_rsn);
 	/* TODO: leave mesh (stop beacon). This will happen on link down
@@ -19,7 +19,8 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 	return;
 }
 
-void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
+void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
+				      struct hostapd_iface *ifmsh)
 {
 	if (!ifmsh)
 		return;
@@ -30,7 +31,7 @@ void wpa_supplicant_mesh_iface_deinit(struct hostapd_iface *ifmsh)
 		os_free(ifmsh->mconf);
 	}
 
-	mesh_mpm_deinit(ifmsh);
+	mesh_mpm_deinit(wpa_s, ifmsh);
 	/* take care of shared data */
 	/* FIX: ugly failures when NA to mesh */
 	hostapd_interface_deinit(ifmsh);
@@ -263,12 +264,16 @@ int wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s)
 	int ret = 0;
 
 	wpa_msg(wpa_s, MSG_INFO, "leaving mesh");
+
+	mesh_mpm_deinit(wpa_s, wpa_s->ifmsh);
 	ret = wpa_drv_leave_mesh(wpa_s);
 
         if (ret)
                 wpa_msg(wpa_s, MSG_ERROR, "mesh leave error=%d\n", ret);
 
 	wpa_drv_set_operstate(wpa_s, 1);
+
+	wpa_supplicant_mesh_deinit(wpa_s);
 
 	return ret;
 }

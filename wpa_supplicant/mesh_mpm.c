@@ -17,6 +17,11 @@
 
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta);
+static void
+mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
+				       struct sta_info *sta,
+				       enum plink_action_field type,
+				       u16 close_reason);
 
 struct mesh_peer_mgmt_ie {
 	const u8 *proto_id;
@@ -172,15 +177,32 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	return;
 }
 
-void
-mesh_mpm_deinit(struct hostapd_iface *ifmsh)
+int mesh_mpm_plink_close (struct hostapd_data *hapd,
+			  struct sta_info *sta, void *ctx)
 {
-	struct hostapd_data *data = ifmsh->bss[0];
+	struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)ctx;
+	int reason = WLAN_REASON_MESH_PEERING_CANCELLED;
 
-	/* TODO: notify peers we're leaving */
+	if (sta) {
+		wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
+		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+		wpa_printf(MSG_DEBUG, "MPM: %s: closing plink sta=" MACSTR,
+                           __func__, MAC2STR(sta->addr));
+		return 1;
+	}
+	return 0;
+}
+
+void
+mesh_mpm_deinit(struct wpa_supplicant *wpa_s, struct hostapd_iface *ifmsh)
+{
+	struct hostapd_data *hapd = ifmsh->bss[0];
+
+	/* notify peers we're leaving */
+	ap_for_each_sta(hapd, mesh_mpm_plink_close, (void*)wpa_s);
 	/* TODO: deregister frames and events */
 
-	hostapd_free_stas(data);
+	hostapd_free_stas(hapd);
 }
 
 /* for mesh_rsn to indicate this peer has completed authentication, and we're
@@ -502,27 +524,6 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 		     MAC2STR(sta->addr));
 }
 
-static void mesh_mpm_plink_closed(struct wpa_supplicant *wpa_s,
-				 struct sta_info *sta, int reason)
-{
-	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
-
-	if (!reason)
-		reason = WLAN_REASON_MESH_CLOSE_RCVD;
-
-	eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
-	sta->mpm_close_reason = reason;
-
-	wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
-	        MACSTR " closed with reason %d\n",
-		MAC2STR(sta->addr), reason);
-
-	wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
-		     MAC2STR(sta->addr));
-
-	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
-
-}
 /* initiate peering with station */
 static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
@@ -641,6 +642,14 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			changed |= mesh_set_ht_op_mode(cand->conf->mesh);
 			*/
 			sta->mpm_close_reason = reason;
+
+			wpa_msg(wpa_s, MSG_INFO, "mesh plink with "
+				MACSTR " closed with reason %d\n",
+				MAC2STR(sta->addr), reason);
+
+			wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_PEER_DISCONNECTED MACSTR,
+				     MAC2STR(sta->addr));
+
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 			break;
 		case OPN_ACPT:

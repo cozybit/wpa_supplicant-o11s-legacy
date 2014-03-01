@@ -3598,7 +3598,7 @@ static void wpa_supplicant_deinit_iface(struct wpa_supplicant *wpa_s,
 
 #ifdef CONFIG_MESH
 	if (wpa_s->ifmsh) {
-		wpa_supplicant_mesh_iface_deinit(wpa_s->ifmsh);
+		wpa_supplicant_mesh_iface_deinit(wpa_s, wpa_s->ifmsh);
 		wpa_s->ifmsh = NULL;
 	}
 #endif /* CONFIG_MESH */
