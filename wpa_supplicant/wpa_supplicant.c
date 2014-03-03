@@ -1373,7 +1373,7 @@ void wpa_supplicant_associate(struct wpa_supplicant *wpa_s,
 		}
 		wpa_s->current_bss = bss;
 		/* We joined the mesh network ~= WPA_ASSOCIATED */
-		wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATED);
+		wpa_supplicant_set_state(wpa_s, WPA_COMPLETED);
 		wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_GROUP_STARTED
 			     "ssid=\"%s\" id=%d",
 			     wpa_ssid_txt(ssid->ssid, ssid->ssid_len),
