@@ -177,6 +177,56 @@ wpa_mesh_set_plink_state(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 	return;
 }
 
+static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
+				 struct sta_info *sta)
+{
+	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
+
+	if (sta->mpm_close_reason == WLAN_REASON_MESH_CLOSE_RCVD) {
+		ap_free_sta(hapd, sta);
+		return;
+	}
+
+	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_LISTEN);
+	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
+	sta->mpm_retries = 0;
+}
+
+static void plink_timer(void *eloop_ctx, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct sta_info *sta = user_data;
+	u16 reason = 0;
+
+	switch (sta->plink_state) {
+	case PLINK_OPEN_RCVD:
+	case PLINK_OPEN_SENT:
+		/* retry timer */
+		if (sta->mpm_retries < dot11MeshMaxRetries) {
+			eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
+			break;
+		}
+		reason = WLAN_REASON_MESH_MAX_RETRIES;
+		/* fall through on else */
+
+	case PLINK_CNF_RCVD:
+		/* confirm timer */
+		if (!reason)
+			reason = WLAN_REASON_MESH_CONFIRM_TIMEOUT;
+		sta->plink_state = PLINK_HOLDING;
+		eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
+		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
+		break;
+	case PLINK_HOLDING:
+		/* holding timer */
+		mesh_mpm_fsm_restart(wpa_s, sta);
+		break;
+	default:
+		break;
+	}
+}
+
 int mesh_mpm_plink_close (struct hostapd_data *hapd,
 			  struct sta_info *sta, void *ctx)
 {
@@ -446,55 +496,9 @@ void mesh_mpm_mgmt_rx(struct wpa_supplicant *wpa_s,
 			rx_mgmt->frame_len, &fi);
 }
 
-static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
-				 struct sta_info *sta)
-{
-	struct hostapd_data *hapd = wpa_s->ifmsh->bss[0];
 
-	if (sta->mpm_close_reason == WLAN_REASON_MESH_CLOSE_RCVD) {
-		ap_free_sta(hapd, sta);
-		return;
-	}
 
-	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_LISTEN);
-	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
-	sta->mpm_retries = 0;
-}
 
-static void plink_timer(void *eloop_ctx, void *user_data)
-{
-	struct wpa_supplicant *wpa_s = eloop_ctx;
-	struct sta_info *sta = user_data;
-	u16 reason = 0;
-
-	switch (sta->plink_state) {
-	case PLINK_OPEN_RCVD:
-	case PLINK_OPEN_SENT:
-		/* retry timer */
-		if (sta->mpm_retries < dot11MeshMaxRetries) {
-			eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
-			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
-			break;
-		}
-		reason = WLAN_REASON_MESH_MAX_RETRIES;
-		/* fall through on else */
-
-	case PLINK_CNF_RCVD:
-		/* confirm timer */
-		if (!reason)
-			reason = WLAN_REASON_MESH_CONFIRM_TIMEOUT;
-		sta->plink_state = PLINK_HOLDING;
-		eloop_register_timeout(dot11MeshHoldingTimeout, 0, plink_timer, wpa_s, sta);
-		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
-		break;
-	case PLINK_HOLDING:
-		/* holding timer */
-		mesh_mpm_fsm_restart(wpa_s, sta);
-		break;
-	default:
-		break;
-	}
-}
 
 static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 				 struct sta_info *sta)
