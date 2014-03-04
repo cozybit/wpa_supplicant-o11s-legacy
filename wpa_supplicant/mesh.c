@@ -79,9 +79,12 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
 	static int default_groups[] = { 19, 20, 21, 25, 26 };
 
-	if (!wpa_s->conf->user_mpm)
+	if (!wpa_s->conf->user_mpm) {
 		/* not much for us to do here */
+		wpa_msg(wpa_s, MSG_WARNING, "user_mpm is not enabled"
+			"on wpa_supplicant.conf");
 		return 0;
+	}
 
 	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
 	 * mesh, and init MPM in general */
