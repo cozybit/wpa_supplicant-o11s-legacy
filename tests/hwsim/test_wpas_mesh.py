@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# wpa_supplicant AP mode tests
+# wpa_supplicant mesh mode tests
 # Copyright (c) 2014, cozybit Inc.
 #
 # This software may be distributed under the terms of the BSD license.
@@ -10,10 +10,9 @@ import time
 import logging
 logger = logging.getLogger()
 
-import hostapd
 import hwsim_utils
 
-def check_scan(dev, params, other_started=False):
+def check_mesh_scan(dev, params, other_started=False):
     if not other_started:
         dev.dump_monitor()
     id = dev.request("SCAN " + params)
@@ -51,30 +50,60 @@ def check_scan(dev, params, other_started=False):
     if not res.find("[MESH]"):
   	raise Exception("Scan did not contain a MESH network")
 
+def check_mesh_join(dev):
+    ev = dev.wait_event(["MESH-GROUP-STARTED"])
+    if ev is None:
+        raise Exception("Test exception: Couldn't join mesh")
+
+def check_mesh_leave(dev):
+    ev = dev.wait_event(["MESH-GROUP-REMOVED"])
+    if ev is None:
+        raise Exception("Test exception: Couldn't leave mesh")
+
+def check_mesh_peer_connected(dev):
+    ev = dev.wait_event(["MESH-PEER-CONNECTED"])
+    if ev is None:
+        raise Exception("Test exception: couldn't find a remote peer")
+
 def test_wpas_mesh_mode_support(dev):
-    """wpa_supplicant MESH mode - open network"""
+    """wpa_supplicant MESH network mode support"""
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "5")
+    dev[0].remove_network(id)
 
-def test_wpas_mesh_mode_scan(dev, apdev):
-
+def test_wpas_mesh_mode_scan(dev):
+    """wpa_supplicant MESH scan support"""
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "5")
     dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[0].set_network(id, "key_mgmt", "NONE")
     dev[0].set_network(id, "frequency", "2412")
-    dev[0].select_network(id)  # TODO We should call the group_add instead!!
+    dev[0].mesh_group_add(id)
 
     id = dev[1].add_network()
     dev[1].set_network(id, "mode", "5")
     dev[1].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[1].set_network(id, "key_mgmt", "NONE")
     dev[1].set_network(id, "frequency", "2412")
-    dev[1].select_network(id)  # TODO We should call the group_add instead!!
+    dev[1].mesh_group_add(id)
 
-    time.sleep(3)
-    check_scan(dev[0], "use_id=1")
+    # Check for mesh joined
+    check_mesh_join(dev[0])
+    check_mesh_join(dev[1])
 
+#    check_mesh_peer_connected(dev[0])
+#    check_mesh_peer_connected(dev[1])
+
+    # Check for Mesh scan
+    check_mesh_scan(dev[0], "use_id=1")
+
+    # TODO Should we modify the framework so we leave mesh after each test?
+    # For now leave mesh for next test
+    dev[0].mesh_group_remove()
+    dev[1].mesh_group_remove()
+    check_mesh_leave(dev[0])
+    check_mesh_leave(dev[1])
+ 
 def test_wpas_mesh_open(dev, apdev):
 
     id = dev[0].add_network()
@@ -82,15 +111,19 @@ def test_wpas_mesh_open(dev, apdev):
     dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[0].set_network(id, "key_mgmt", "NONE")
     dev[0].set_network(id, "frequency", "2412")
-    dev[0].select_network(id)  # TODO We should call the group_add instead!!
+    dev[0].mesh_group_add(id)
 
     id = dev[1].add_network()
     dev[1].set_network(id, "mode", "5")
     dev[1].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[1].set_network(id, "key_mgmt", "NONE")
     dev[1].set_network(id, "frequency", "2412")
-    dev[1].select_network(id)  # TODO We should call the group_add instead!!
+    dev[1].mesh_group_add(id)
 
-    time.sleep(15)
+    # Check for mesh joined
+    check_mesh_join(dev[0])
+    check_mesh_join(dev[1])
 
- 
+    # Check for peer connected
+    check_mesh_peer_connected(dev[0])
+    check_mesh_peer_connected(dev[1])
