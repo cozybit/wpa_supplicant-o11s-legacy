@@ -238,6 +238,7 @@ int mesh_mpm_plink_close (struct hostapd_data *hapd,
 		mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CLOSE, reason);
 		wpa_printf(MSG_DEBUG, "MPM: %s: closing plink sta=" MACSTR,
                            __func__, MAC2STR(sta->addr));
+		eloop_cancel_timeout(plink_timer, wpa_s, sta);
 		return 1;
 	}
 	return 0;
