@@ -179,7 +179,7 @@ def test_wpas_mesh_mode_scan(dev):
     check_mesh_scan(dev[0], "use_id=1")
 
 def test_wpas_mesh_open(dev, apdev):
-    """wpa_supplicant MESH open network connectivity"""
+    """wpa_supplicant open MESH network connectivity"""
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "5")
     dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
@@ -205,3 +205,34 @@ def test_wpas_mesh_open(dev, apdev):
     # Test connectivity 0->1 and 1->0
     hwsim_utils.test_connectivity(dev[0].ifname, dev[1].ifname)
     hwsim_utils.test_connectivity(dev[1].ifname, dev[0].ifname)
+
+def test_wpas_mesh_secure(dev, apdev):
+    """wpa_supplicant secure MESH network connectivity"""
+    id = dev[0].add_network()
+    dev[0].set_network(id, "mode", "5")
+    dev[0].set_network_quoted(id, "ssid", "wpas-mesh-sec")
+    dev[0].set_network(id, "key_mgmt", "SAE")
+    dev[0].set_network(id, "frequency", "2412")
+    dev[0].set_network(id, "psk", "thisismypassphrase!")
+    dev[0].mesh_group_add(id)
+
+    id = dev[1].add_network()
+    dev[1].set_network(id, "mode", "5")
+    dev[1].set_network_quoted(id, "ssid", "wpas-mesh-sec")
+    dev[1].set_network(id, "key_mgmt", "SAE")
+    dev[1].set_network(id, "frequency", "2412")
+    dev[1].set_network(id, "psk", "thisismypassphrase!")
+    dev[1].mesh_group_add(id)
+
+    # Check for mesh joined
+    check_mesh_group_added(dev[0])
+    check_mesh_group_added(dev[1])
+
+    # Check for peer connected
+    check_mesh_peer_connected(dev[0])
+    check_mesh_peer_connected(dev[1])
+
+    # Test connectivity 0->1 and 1->0
+    hwsim_utils.test_connectivity(dev[0].ifname, dev[1].ifname)
+    hwsim_utils.test_connectivity(dev[1].ifname, dev[0].ifname)
+
