@@ -416,7 +416,8 @@ struct hostapd_bss_config {
 	u8 ip_addr_start[4];
 	u8 ip_addr_end[4];
 #endif /* CONFIG_P2P */
-
+#define MESH_ENABLED BIT(0)
+	int mesh;
 	int disassoc_low_ack;
 	int skip_inactivity_poll;
 
