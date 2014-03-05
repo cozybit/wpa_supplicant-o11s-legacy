@@ -70,10 +70,8 @@ def check_mesh_peer_disconnected(dev):
     if ev is None:
         raise Exception("Test exception: Peer disconnect event not detected.")
 
-
-
-def test_wpas_mesh_mode_support(dev):
-    """wpa_supplicant MESH network mode support"""
+def test_wpas_add_set_remvove_support(dev):
+    """wpa_supplicant MESH add/set/remove network support"""
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "5")
     dev[0].remove_network(id)
