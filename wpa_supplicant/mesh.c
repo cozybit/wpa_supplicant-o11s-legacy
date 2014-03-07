@@ -78,6 +78,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	struct mesh_conf *mconf;
 	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
 	static int default_groups[] = { 19, 20, 21, 25, 26 };
+	size_t len;
 
 	if (!wpa_s->conf->user_mpm) {
 		/* not much for us to do here */
@@ -173,9 +174,25 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		bss->conf->wpa = ssid->proto;
 		bss->conf->wpa_key_mgmt = ssid->key_mgmt;
 		bss->conf->sae_groups = wpa_s->conf->sae_groups;
-		if (!bss->conf->sae_groups)
-			bss->conf->sae_groups = default_groups;
-		bss->conf->ssid.wpa_passphrase = ssid->passphrase;
+
+		if (wpa_s->conf->sae_groups) {
+			bss->conf->sae_groups =
+				os_zalloc(sizeof(wpa_s->conf->sae_groups));
+			os_memcpy(bss->conf->sae_groups,
+				  wpa_s->conf->sae_groups,
+				  sizeof(wpa_s->conf->sae_groups));
+		} else {
+			bss->conf->sae_groups =
+				os_zalloc(sizeof(default_groups));
+			os_memcpy(bss->conf->sae_groups,
+				  default_groups,
+				  sizeof(default_groups));
+		}
+
+		len = os_strlen(ssid->passphrase);
+		bss->conf->ssid.wpa_passphrase = os_zalloc(len);
+		os_memcpy(bss->conf->ssid.wpa_passphrase,
+			  ssid->passphrase, len);
 
 		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
 		if (!wpa_s->mesh_rsn)
