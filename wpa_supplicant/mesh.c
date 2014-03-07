@@ -27,7 +27,13 @@ void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
 
 	if (ifmsh->mconf) {
 		if (ifmsh->mconf->ies)
-			os_free(ifmsh->mconf->ies);
+			ifmsh->mconf->ies = NULL;
+			/* We cannot free this struct
+			 * because wpa_authenticator on
+			 * hostapd side is also using it
+			 * for now just set to NULL and
+			 * let hostapd code free it.
+			 */
 		os_free(ifmsh->mconf);
 	}
 
