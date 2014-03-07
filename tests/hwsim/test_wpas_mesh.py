@@ -70,7 +70,7 @@ def check_mesh_peer_disconnected(dev):
     if ev is None:
         raise Exception("Test exception: Peer disconnect event not detected.")
 
-def test_wpas_add_set_remvove_support(dev):
+def test_wpas_add_set_remove_support(dev):
     """wpa_supplicant MESH add/set/remove network support"""
     id = dev[0].add_network()
     dev[0].set_network(id, "mode", "5")
@@ -213,7 +213,7 @@ def test_wpas_mesh_secure(dev, apdev):
     dev[0].set_network_quoted(id, "ssid", "wpas-mesh-sec")
     dev[0].set_network(id, "key_mgmt", "SAE")
     dev[0].set_network(id, "frequency", "2412")
-    dev[0].set_network(id, "psk", "thisismypassphrase!")
+    dev[0].set_network_quoted(id, "psk", "thisismypassphrase!")
     dev[0].mesh_group_add(id)
 
     id = dev[1].add_network()
@@ -221,7 +221,7 @@ def test_wpas_mesh_secure(dev, apdev):
     dev[1].set_network_quoted(id, "ssid", "wpas-mesh-sec")
     dev[1].set_network(id, "key_mgmt", "SAE")
     dev[1].set_network(id, "frequency", "2412")
-    dev[1].set_network(id, "psk", "thisismypassphrase!")
+    dev[1].set_network_quoted(id, "psk", "thisismypassphrase!")
     dev[1].mesh_group_add(id)
 
     # Check for mesh joined
