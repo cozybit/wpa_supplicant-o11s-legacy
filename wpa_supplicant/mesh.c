@@ -196,9 +196,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		}
 
 		len = os_strlen(ssid->passphrase);
-		bss->conf->ssid.wpa_passphrase = os_zalloc(len);
-		os_memcpy(bss->conf->ssid.wpa_passphrase,
-			  ssid->passphrase, len);
+		bss->conf->ssid.wpa_passphrase = dup_binstr(ssid->passphrase, len);
 
 		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
 		if (!wpa_s->mesh_rsn)
