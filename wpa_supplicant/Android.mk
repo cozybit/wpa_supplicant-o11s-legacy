@@ -14,6 +14,8 @@ else
   CONFIG_DRIVER_TEST := y
 endif
 
+WPA_BUILD_SUPPLICANT := true
+
 ifeq ($(WPA_BUILD_SUPPLICANT),true)
 
 # yes to secure mesh, XXX: should be a feature
@@ -221,6 +223,7 @@ L_CFLAGS += -DCONFIG_MESH
 OBJS += mesh.c
 OBJS += mesh_mpm.c
 OBJS += mesh_rsn.c
+endif
 endif
 
 ifdef CONFIG_TDLS
@@ -1630,3 +1633,5 @@ LOCAL_SHARED_LIBRARIES := libcutils liblog
 LOCAL_COPY_HEADERS_TO := libwpa_client
 LOCAL_COPY_HEADERS := src/common/wpa_ctrl.h
 include $(BUILD_SHARED_LIBRARY)
+
+endif
