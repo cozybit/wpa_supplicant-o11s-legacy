@@ -170,6 +170,7 @@ struct hostapd_hw_modes {
 #define IEEE80211_MODE_INFRA	0
 #define IEEE80211_MODE_IBSS	1
 #define IEEE80211_MODE_AP	2
+#define IEEE80211_MODE_MESH	5
 
 #define IEEE80211_CAP_ESS	0x0001
 #define IEEE80211_CAP_IBSS	0x0002
@@ -870,6 +871,29 @@ struct wpa_driver_ap_params {
 	int osen;
 };
 
+struct wpa_driver_mesh_bss_params {
+#define WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS	0x00000001
+	/* TODO: Other mesh configuration parameters would go here.  See
+	 * NL80211_MESHCONF_* in nl80211.h for all the mesh config parameters. */
+	unsigned int flags;
+};
+
+struct wpa_driver_mesh_join_params {
+	const u8 *meshid;
+	int meshid_len;
+	int *basic_rates;
+	int mcast_rate;
+	u8 *ies;
+	int ie_len;
+	int freq;
+	struct wpa_driver_mesh_bss_params conf;
+#define WPA_DRIVER_MESH_FLAG_USER_MPM	0x00000001
+#define WPA_DRIVER_MESH_FLAG_DRIVER_MPM	0x00000002
+#define WPA_DRIVER_MESH_FLAG_SAE_AUTH	0x00000004
+#define WPA_DRIVER_MESH_FLAG_AMPE	0x00000008
+	unsigned int flags;
+};
+
 /**
  * struct wpa_driver_capa - Driver capability information
  */
@@ -979,7 +1003,9 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS_QOS_MAPPING			0x40000000
 /* Driver supports CSA in AP mode */
 #define WPA_DRIVER_FLAGS_AP_CSA				0x80000000
-	unsigned int flags;
+/* Driver supports mesh */
+#define WPA_DRIVER_FLAGS_MESH			0x0000000100000000ULL
+	u64 flags;
 
 	int max_scan_ssids;
 	int max_sched_scan_ssids;
@@ -1055,6 +1081,12 @@ struct hostapd_sta_add_params {
 	int vht_opmode_enabled;
 	u8 vht_opmode;
 	u32 flags; /* bitmask of WPA_STA_* flags */
+	u32 flags_mask; /* unset bits in flags */
+#ifdef CONFIG_MESH
+	enum mesh_plink_state plink_state;
+	enum plink_action_field plink_action;
+	enum mesh_power_mode power_mode;
+#endif /* CONFIG_MESH */
 	int set; /* Set STA parameters instead of add */
 	u8 qosinfo;
 	const u8 *ext_capab;
@@ -1135,7 +1167,11 @@ enum wpa_driver_if_type {
 	 * WPA_IF_P2P_DEVICE - P2P Device interface is used to indentify the
 	 * abstracted P2P Device function in the driver
 	 */
-	WPA_IF_P2P_DEVICE
+	WPA_IF_P2P_DEVICE,
+	/*
+	 * WPA_IF_MESH - Mesh interface
+	 */
+	WPA_IF_MESH
 };
 
 struct wpa_init_params {
@@ -1173,6 +1209,7 @@ struct wpa_bss_params {
 #define WPA_STA_SHORT_PREAMBLE BIT(2)
 #define WPA_STA_MFP BIT(3)
 #define WPA_STA_TDLS_PEER BIT(4)
+#define WPA_STA_AUTHENTICATED BIT(5)
 
 enum tdls_oper {
 	TDLS_DISCOVERY_REQ,
@@ -2761,6 +2798,28 @@ struct wpa_driver_ops {
 	 * Returns: Length of written status information or -1 on failure
 	 */
 	int (*status)(void *priv, char *buf, size_t buflen);
+
+	/**
+	 * init_mesh - Driver specific initialization for mesh
+	 * @priv: Private driver interface data
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*init_mesh)(void *priv);
+
+	/**
+	 * join_mesh - Join a mesh network
+	 * @priv: Private driver interface data
+	 * @params: Mesh configuration parameters
+	 * Returns: 0 on success, -1 on failure
+	 */
+	int (*join_mesh)(void *priv, struct wpa_driver_mesh_join_params *params);
+
+	/**
+	 * leave_mesh - Leave a mesh network
+	 * @priv: Private driver interface data
+	 * Returns 0 on success, -1 on failure
+	 */
+	int (*leave_mesh)(void *priv);
 };
 
 
@@ -3235,7 +3294,13 @@ enum wpa_event_type {
 	 * to reduce issues due to interference or internal co-existence
 	 * information in the driver.
 	 */
-	EVENT_AVOID_FREQUENCIES
+	EVENT_AVOID_FREQUENCIES,
+
+	/**
+	 * EVENT_NEW_PEER_CANDIDATE - new (unknown) mesh peer notification
+	 */
+	EVENT_NEW_PEER_CANDIDATE
+
 };
 
 
@@ -3874,6 +3939,22 @@ union wpa_event_data {
 	 * This is used as the data with EVENT_AVOID_FREQUENCIES.
 	 */
 	struct wpa_freq_range_list freq_range;
+
+	/**
+	 * struct mesh_peer
+	 *
+	 * @peer: peer address
+	 * @ies: beacon IEs
+	 * @ie_len: length of @ies
+	 *
+	 * Notification of new candidate mesh peer.
+	 */
+	struct mesh_peer {
+		u8 peer[ETH_ALEN];
+		u8 *ies;
+		int ie_len;
+	} mesh_peer;
+
 };
 
 /**
