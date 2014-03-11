@@ -42,6 +42,8 @@
 #include "scan.h"
 #include "offchannel.h"
 #include "interworking.h"
+#include "mesh.h"
+#include "mesh_mpm.h"
 
 
 #ifndef CONFIG_NO_SCAN_PROCESSING
@@ -1134,7 +1136,11 @@ wpa_supplicant_pick_new_network(struct wpa_supplicant *wpa_s)
 			if (wpas_network_disabled(wpa_s, ssid))
 				continue;
 			if (ssid->mode == IEEE80211_MODE_IBSS ||
-			    ssid->mode == IEEE80211_MODE_AP)
+			    ssid->mode == IEEE80211_MODE_AP ||
+#ifdef CONFIG_MESH
+			    ssid->mode == IEEE80211_MODE_MESH ||
+#endif /* CONFIG_MESH */
+			    0)
 				return ssid;
 		}
 	}
@@ -1414,6 +1420,13 @@ static int wpas_select_network_from_last_scan(struct wpa_supplicant *wpa_s,
 		 */
 		return 1;
 	} else {
+#ifdef CONFIG_MESH
+		if (wpa_s->ifmsh) {
+			wpa_msg(wpa_s, MSG_INFO, "Avoiding join because "
+				"we already joined a mesh group.");
+			return 0;
+		}
+#endif /* CONFIG_MESH */
 		wpa_dbg(wpa_s, MSG_DEBUG, "No suitable network found");
 		ssid = wpa_supplicant_pick_new_network(wpa_s);
 		if (ssid) {
@@ -2874,6 +2887,10 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	wpas_p2p_rx_action(wpa_s, mgmt->da, mgmt->sa, mgmt->bssid,
 			   category, payload, plen, freq);
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_MESH
+	if (wpa_s->ifmsh)
+		mesh_mpm_action_rx(wpa_s, mgmt, len);
+#endif /* CONFIG_MESH */
 }
 
 
@@ -3221,7 +3238,9 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			}
 #endif /* CONFIG_P2P */
 #ifdef CONFIG_IBSS_RSN
-			if (stype == WLAN_FC_STYPE_AUTH &&
+			if (wpa_s->current_ssid &&
+			    wpa_s->current_ssid->mode == WPAS_MODE_IBSS &&
+			    stype == WLAN_FC_STYPE_AUTH &&
 			    data->rx_mgmt.frame_len >= 30) {
 				wpa_supplicant_event_ibss_auth(wpa_s, data);
 				break;
@@ -3235,6 +3254,12 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 				break;
 			}
 
+#ifdef CONFIG_MESH
+			if (wpa_s->ifmsh) {
+				mesh_mpm_mgmt_rx(wpa_s, &data->rx_mgmt);
+				break;
+			}
+#endif /* CONFIG_MESH */
 			wpa_dbg(wpa_s, MSG_DEBUG, "AP: ignore received "
 				"management frame in non-AP mode");
 			break;
@@ -3461,6 +3486,13 @@ void wpa_supplicant_event(void *ctx, enum wpa_event_type event,
 			data->connect_failed_reason.code);
 #endif /* CONFIG_AP */
 		break;
+#ifdef CONFIG_MESH
+	case EVENT_NEW_PEER_CANDIDATE:
+		wpa_mesh_notify_peer(wpa_s, data->mesh_peer.peer,
+				     data->mesh_peer.ies,
+				     data->mesh_peer.ie_len);
+		break;
+#endif /* CONFIG_MESH */
 	default:
 		wpa_msg(wpa_s, MSG_INFO, "Unknown event %d", event);
 		break;
