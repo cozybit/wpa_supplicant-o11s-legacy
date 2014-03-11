@@ -2106,6 +2106,23 @@ static char * wpa_supplicant_ie_txt(char *pos, char *end, const char *proto,
 	}
 #endif /* CONFIG_IEEE80211W */
 
+#ifdef CONFIG_MESH
+	if (data.key_mgmt & WPA_KEY_MGMT_SAE) {
+		ret = os_snprintf(pos, end - pos, "%sSAE",
+				  pos == start ? "" : "+");
+		if (ret < 0 || ret >= end - pos)
+			return pos;
+		pos += ret;
+	}
+	if (data.key_mgmt & WPA_KEY_MGMT_FT_SAE) {
+		ret = os_snprintf(pos, end - pos, "%sFT_SAE",
+				  pos == start ? "" : "+");
+		if (ret < 0 || ret >= end - pos)
+			return pos;
+		pos += ret;
+	}
+#endif /* CONFIG_MESH */
+
 	pos = wpa_supplicant_cipher_txt(pos, end, data.pairwise_cipher);
 
 	if (data.capabilities & WPA_CAPABILITY_PREAUTH) {
