@@ -208,6 +208,16 @@ endif
 ifdef CONFIG_WNM
 L_CFLAGS += -DCONFIG_WNM
 OBJS += wnm_sta.c
+ifdef CONFIG_MESH
+NEED_80211_COMMON=y
+NEED_AES_SIV=y
+NEED_AES_OMAC1=y
+NEED_AES_CTR=y
+L_CFLAGS += -DCONFIG_MESH
+OBJS += mesh.c
+OBJS += mesh_mpm.c
+OBJS += mesh_rsn.c
+endif
 endif
 
 ifdef CONFIG_TDLS
@@ -1148,6 +1158,9 @@ ifdef NEED_AES_ENC
 ifdef CONFIG_INTERNAL_AES
 AESOBJS += src/crypto/aes-internal-enc.c
 endif
+endif
+ifdef NEED_AES_SIV
+AESOBJS += src/crypto/aes-siv.c
 endif
 ifdef NEED_AES
 OBJS += $(AESOBJS)
