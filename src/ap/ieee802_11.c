@@ -447,6 +447,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 {
 	u16 resp = WLAN_STATUS_SUCCESS;
 	struct wpabuf *data = NULL;
+	int start_ampe = 0;
 
 	if (!sta->sae) {
 		if (auth_transaction != 1)
@@ -456,6 +457,18 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			return;
 		sta->sae->state = SAE_NOTHING;
 	}
+
+#ifdef CONFIG_MESH
+	if (sta->sae->state == SAE_ACCEPTED) {
+		if (auth_transaction == 1 || auth_transaction == 2) {
+			wpa_printf(MSG_DEBUG, "SAE: remove the STA "
+				   "(" MACSTR ") doing reauthentication",
+				   MAC2STR(sta->addr));
+			ap_free_sta(hapd, sta);
+		}
+		return;
+	}
+#endif /* CONFIG_MESH */
 
 	if (auth_transaction == 1) {
 		const u8 *token = NULL;
@@ -482,16 +495,29 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 					   MAC2STR(sta->addr));
 				data = auth_build_token_req(hapd, sta->addr);
 				resp = WLAN_STATUS_ANTI_CLOGGING_TOKEN_REQ;
-			} else {
+			} else if (sta->sae->state != SAE_COMMITTED) {
 				data = auth_process_sae_commit(hapd, sta);
 				if (data == NULL)
 					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 				else
 					sta->sae->state = SAE_COMMITTED;
+			} else if (sae_process_commit(sta->sae) < 0) {
+					wpa_printf(MSG_DEBUG,
+					 "SAE: Failed to process peer commit");
+					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+			} else {
+				data = auth_build_sae_confirm(hapd, sta);
+				if (data == NULL)
+					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				else {
+					sta->sae->state = SAE_CONFIRMED;
+					auth_transaction = 2;
+				}
 			}
 		}
 	} else if (auth_transaction == 2) {
-		if (sta->sae->state != SAE_COMMITTED) {
+		if (sta->sae->state != SAE_COMMITTED &&
+		    sta->sae->state != SAE_CONFIRMED) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_IEEE80211,
 				       HOSTAPD_LEVEL_DEBUG,
@@ -509,10 +535,18 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		} else {
 			resp = WLAN_STATUS_SUCCESS;
 			sta->flags |= WLAN_STA_AUTH;
-			wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 			sta->auth_alg = WLAN_AUTH_SAE;
 			mlme_authenticate_indication(hapd, sta);
 
+			/* already confirmed */
+			if (sta->sae->state == SAE_CONFIRMED) {
+				sta->sae->state = SAE_ACCEPTED;
+				sae_clear_temp_data(sta->sae);
+				wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
+				return;
+			}
+
+			start_ampe = 1;
 			data = auth_build_sae_confirm(hapd, sta);
 			if (data == NULL)
 				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -536,6 +570,8 @@ failed:
 			auth_transaction, resp,
 			data ? wpabuf_head(data) : (u8 *) "",
 			data ? wpabuf_len(data) : 0);
+	if (start_ampe)
+		wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 	wpabuf_free(data);
 }
 #endif /* CONFIG_SAE */
@@ -650,10 +686,20 @@ static void handle_auth(struct hostapd_data *hapd,
 		return;
 	}
 
-	sta = ap_sta_add(hapd, mgmt->sa);
-	if (!sta) {
-		resp = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
-		goto fail;
+#ifdef CONFIG_MESH
+	if (hapd->conf->mesh & MESH_ENABLED) {
+		/* if the mesh peer is not available, we don't do authentication. */
+		sta = ap_get_sta(hapd, mgmt->sa);
+		if (!sta)
+			return;
+	} else
+#endif /* CONFIG_MESH */
+	{
+		sta = ap_sta_add(hapd, mgmt->sa);
+		if (!sta) {
+			resp = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
+			goto fail;
+		}
 	}
 
 	if (vlan_id > 0) {
@@ -738,6 +784,19 @@ static void handle_auth(struct hostapd_data *hapd,
 #endif /* CONFIG_IEEE80211R */
 #ifdef CONFIG_SAE
 	case WLAN_AUTH_SAE:
+#ifdef CONFIG_MESH
+		if (hapd->conf->mesh & MESH_ENABLED) {
+			if (sta->wpa_sm == NULL)
+				sta->wpa_sm = wpa_auth_sta_init(hapd->wpa_auth,
+								sta->addr, NULL);
+			if (sta->wpa_sm == NULL) {
+				wpa_printf(MSG_DEBUG, "FT: Failed to initialize WPA "
+					   "state machine");
+				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
+				goto fail;
+			}
+		}
+#endif /* CONFIG_MESH */
 		handle_auth_sae(hapd, sta, mgmt, len, auth_transaction);
 		return;
 #endif /* CONFIG_SAE */
@@ -1749,6 +1808,9 @@ int ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 	    !((hapd->conf->p2p & P2P_GROUP_OWNER) &&
 	      stype == WLAN_FC_STYPE_ACTION) &&
 #endif /* CONFIG_P2P */
+#ifdef CONFIG_MESH
+	    !(hapd->conf->mesh & MESH_ENABLED) &&
+#endif /* CONFIG_MESH */
 	    os_memcmp(mgmt->bssid, hapd->own_addr, ETH_ALEN) != 0) {
 		wpa_printf(MSG_INFO, "MGMT: BSSID=" MACSTR " not our address",
 			   MAC2STR(mgmt->bssid));
