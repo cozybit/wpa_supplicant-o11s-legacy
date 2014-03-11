@@ -8657,7 +8657,6 @@ nla_put_failure:
 	return ret;
 }
 
-
 static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				  struct wpa_driver_associate_params *params,
 				  struct nl_msg *msg)
@@ -8913,6 +8912,17 @@ static int wpa_driver_nl80211_connect(
 }
 
 
+static int wpa_driver_nl80211_init_mesh(void *priv)
+{
+	if (wpa_driver_nl80211_set_mode(priv, NL80211_IFTYPE_MESH_POINT)) {
+		wpa_printf(MSG_INFO, "nl80211: Failed to set interface into "
+				"mode mode");
+		return -1;
+	}
+	return 0;
+}
+
+
 static int wpa_driver_nl80211_join_mesh(
 	void *priv,
 	struct wpa_driver_mesh_join_params *params)
@@ -8927,10 +8937,6 @@ static int wpa_driver_nl80211_join_mesh(
 	if (!msg)
 		return -1;
 
-	if (wpa_driver_nl80211_set_mode(drv->first_bss,
-					NL80211_IFTYPE_MESH_POINT))
-		return -1;
-
 	wpa_printf(MSG_DEBUG, "nl80211: mesh join (ifindex=%d)", drv->ifindex);
 	nl80211_cmd(drv, msg, 0, NL80211_CMD_JOIN_MESH);
 
@@ -8940,6 +8946,19 @@ static int wpa_driver_nl80211_join_mesh(
 		wpa_printf(MSG_DEBUG, "  * freq=%d", params->freq);
 		NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, params->freq);
 	}
+
+	if (params->basic_rates) {
+		u8 rates[NL80211_MAX_SUPP_RATES];
+		u8 rates_len = 0;
+		int i;
+
+		for (i = 0; i < NL80211_MAX_SUPP_RATES && params->basic_rates[i] >= 0;
+			 i++)
+			rates[rates_len++] = params->basic_rates[i] / 5;
+
+		NLA_PUT(msg, NL80211_ATTR_BSS_BASIC_RATES, rates_len, rates);
+	}
+
 	if (params->meshid) {
 		wpa_hexdump_ascii(MSG_DEBUG, "  * SSID",
 				  params->meshid, params->meshid_len);
@@ -12345,6 +12364,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.deauthenticate = driver_nl80211_deauthenticate,
 	.authenticate = driver_nl80211_authenticate,
 	.associate = wpa_driver_nl80211_associate,
+	.init_mesh = wpa_driver_nl80211_init_mesh,
 	.join_mesh = wpa_driver_nl80211_join_mesh,
 	.leave_mesh = wpa_driver_nl80211_leave_mesh,
 	.global_init = nl80211_global_init,
