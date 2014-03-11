@@ -7,6 +7,7 @@
  */
 
 #include "mesh_mpm.h"
+#include "mesh_rsn.h"
 
 #include "eloop.h"
 #include "ap.h"
@@ -280,7 +281,7 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 	 * the AP code already sets this flag. */
 	sta->flags |= WLAN_STA_AUTH;
 
-	/* TODO: rsn: init AMPE sta */
+	mesh_rsn_init_ampe_sta(wpa_s, sta);
 
 	os_memset(&params, 0, sizeof(params));
 	params.addr = sta->addr;
@@ -350,7 +351,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	if (conf->security == MESH_CONF_SEC_NONE)
 		mesh_mpm_plink_open(wpa_s, sta, PLINK_OPEN_SENT);
 	else
-		; /* TODO: auth SAE sta */
+		mesh_rsn_auth_sae_sta(wpa_s, sta);
 }
 
 static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
@@ -363,7 +364,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
-	u8 *pos;
+	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
 	int ampe = conf->security & MESH_CONF_SEC_AMPE;
@@ -382,6 +383,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	if (!buf)
 		return;
 
+	cat = wpabuf_mhead_u8(buf);
 	wpabuf_put_u8(buf, WLAN_ACTION_SELF_PROTECTED);
 	wpabuf_put_u8(buf, type);
 
@@ -463,11 +465,15 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	if (type == PLINK_CLOSE)
 		wpabuf_put_le16(buf, close_reason);
 	if (ampe)
-		;/* TODO: handle AMPE */
+		mesh_rsn_get_pmkid(sta, (u8 *) wpabuf_put(buf, PMKID_LEN));
 
 	/* TODO HT IEs */
 
-	/* TODO: Add AMPE and MIC IEs */
+	if (ampe && mesh_rsn_protect_frame(wpa_s->mesh_rsn, sta, cat, buf)) {
+		wpa_msg(wpa_s, MSG_INFO,
+			"Mesh MPM: failed to add AMPE and MIC IE");
+		goto fail;
+	}
 
 	ret = wpa_drv_send_action(wpa_s, wpa_s->assoc_freq, 0,
 				sta->addr, wpa_s->own_addr, wpa_s->own_addr,
@@ -475,6 +481,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	if (ret < 0)
 		wpa_msg(wpa_s, MSG_INFO, "Mesh MPM: failed to send peering frame");
 
+fail:
 	wpabuf_free(buf);
 }
 
@@ -598,7 +605,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case CNF_ACPT:
 			if (conf->security & MESH_CONF_SEC_AMPE)
-				;/* TODO: derive MTK */
+				mesh_rsn_derive_mtk(wpa_s, sta);
 			mesh_mpm_plink_estab(wpa_s, sta);
 			break;
 		default:
@@ -756,7 +763,10 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 	/* TODO copy sup rates */
 
 	if (mconf->security & MESH_CONF_SEC_AMPE)
-        ; // TODO: process AMPE
+		if (mesh_rsn_process_ampe(wpa_s, sta, &elems,
+					  &mgmt->u.action.category,
+					  ies, ie_len))
+			return;
 
 	if (sta->plink_state == PLINK_BLOCKED)
 		return;
