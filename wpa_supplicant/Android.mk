@@ -52,21 +52,21 @@ L_CFLAGS += -mabi=aapcs-linux
 endif
 
 INCLUDES = $(LOCAL_PATH)
-INCLUDES += $(LOCAL_PATH)/src
-INCLUDES += $(LOCAL_PATH)/src/common
-# INCLUDES += $(LOCAL_PATH)/src/crypto # To force proper includes
-INCLUDES += $(LOCAL_PATH)/src/drivers
-INCLUDES += $(LOCAL_PATH)/src/eap_common
-INCLUDES += $(LOCAL_PATH)/src/eapol_supp
-INCLUDES += $(LOCAL_PATH)/src/eap_peer
-INCLUDES += $(LOCAL_PATH)/src/eap_server
-INCLUDES += $(LOCAL_PATH)/src/hlr_auc_gw
-INCLUDES += $(LOCAL_PATH)/src/l2_packet
-INCLUDES += $(LOCAL_PATH)/src/radius
-INCLUDES += $(LOCAL_PATH)/src/rsn_supp
-INCLUDES += $(LOCAL_PATH)/src/tls
-INCLUDES += $(LOCAL_PATH)/src/utils
-INCLUDES += $(LOCAL_PATH)/src/wps
+INCLUDES += $(LOCAL_PATH)/../src
+INCLUDES += $(LOCAL_PATH)/../src/common
+# INCLUDES += $(LOCAL_PATH)/../src/crypto # To force proper includes
+INCLUDES += $(LOCAL_PATH)/../src/drivers
+INCLUDES += $(LOCAL_PATH)/../src/eap_common
+INCLUDES += $(LOCAL_PATH)/../src/eapol_supp
+INCLUDES += $(LOCAL_PATH)/../src/eap_peer
+INCLUDES += $(LOCAL_PATH)/../src/eap_server
+INCLUDES += $(LOCAL_PATH)/../src/hlr_auc_gw
+INCLUDES += $(LOCAL_PATH)/../src/l2_packet
+INCLUDES += $(LOCAL_PATH)/../src/radius
+INCLUDES += $(LOCAL_PATH)/../src/rsn_supp
+INCLUDES += $(LOCAL_PATH)/../src/tls
+INCLUDES += $(LOCAL_PATH)/../src/utils
+INCLUDES += $(LOCAL_PATH)/../src/wps
 INCLUDES += external/openssl/include
 INCLUDES += system/security/keystore/include
 ifdef CONFIG_DRIVER_NL80211
@@ -289,7 +289,7 @@ L_CFLAGS += -DCONFIG_INTERWORKING
 NEED_GAS=y
 endif
 
-include $(LOCAL_PATH)/src/drivers/drivers.mk
+include $(LOCAL_PATH)/../src/drivers/drivers.mk
 
 ifdef CONFIG_AP
 OBJS_d += $(DRV_BOTH_OBJS)
@@ -1550,7 +1550,7 @@ LOCAL_MODULE := wpa_cli
 LOCAL_MODULE_TAGS := debug
 LOCAL_SHARED_LIBRARIES := libc libcutils liblog
 LOCAL_CFLAGS := $(L_CFLAGS)
-LOCAL_SRC_FILES := $(OBJS_c)
+LOCAL_SRC_FILES := $(filter-out src/%,$(OBJS_c)) $(addprefix ../,$(filter src/%,$(OBJS_c)))
 LOCAL_C_INCLUDES := $(INCLUDES)
 include $(BUILD_EXECUTABLE)
 
@@ -1579,7 +1579,7 @@ LOCAL_STATIC_LIBRARIES += libnl_2
 endif
 endif
 LOCAL_CFLAGS := $(L_CFLAGS)
-LOCAL_SRC_FILES := $(OBJS)
+LOCAL_SRC_FILES := $(filter-out src/%,$(OBJS)) $(addprefix ../,$(filter src/%,$(OBJS)))
 LOCAL_C_INCLUDES := $(INCLUDES)
 include $(BUILD_EXECUTABLE)
 
@@ -1612,10 +1612,12 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 LOCAL_MODULE = libwpa_client
 LOCAL_CFLAGS = $(L_CFLAGS)
-LOCAL_SRC_FILES = src/common/wpa_ctrl.c src/utils/os_$(CONFIG_OS).c
+LOCAL_SRC_FILES = ../src/common/wpa_ctrl.c ../src/utils/os_$(CONFIG_OS).c
 LOCAL_C_INCLUDES = $(INCLUDES)
 LOCAL_SHARED_LIBRARIES := libcutils liblog
 LOCAL_COPY_HEADERS_TO := libwpa_client
-LOCAL_COPY_HEADERS := src/common/wpa_ctrl.h
-LOCAL_COPY_HEADERS += src/common/qca-vendor.h
+LOCAL_COPY_HEADERS := ../src/common/wpa_ctrl.h
+LOCAL_COPY_HEADERS += ../src/common/qca-vendor.h
 include $(BUILD_SHARED_LIBRARY)
+
+endif
