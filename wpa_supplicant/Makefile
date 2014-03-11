@@ -252,6 +252,12 @@ CFLAGS += -DCONFIG_IBSS_RSN
 OBJS += ibss_rsn.o
 endif
 
+ifdef CONFIG_MESH
+NEED_80211_COMMON=y
+CFLAGS += -DCONFIG_MESH
+OBJS += mesh.o mesh_mpm.o
+endif
+
 ifdef CONFIG_P2P
 OBJS += p2p_supplicant.o
 OBJS += ../src/p2p/p2p.o
