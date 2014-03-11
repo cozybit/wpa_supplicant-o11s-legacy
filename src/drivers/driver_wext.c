@@ -1568,7 +1568,7 @@ static int wpa_driver_wext_get_range(void *priv)
 		drv->capa.max_scan_ssids = 1;
 
 		wpa_printf(MSG_DEBUG, "  capabilities: key_mgmt 0x%x enc 0x%x "
-			   "flags 0x%x",
+			   "flags 0x%lx",
 			   drv->capa.key_mgmt, drv->capa.enc, drv->capa.flags);
 	} else {
 		wpa_printf(MSG_DEBUG, "SIOCGIWRANGE: too old (short) data - "
