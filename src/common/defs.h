@@ -300,4 +300,29 @@ enum wpa_ctrl_req_type {
 /* Maximum number of EAP methods to store for EAP server user information */
 #define EAP_MAX_METHODS 8
 
+#ifdef CONFIG_MESH
+enum mesh_plink_state {
+	PLINK_LISTEN = 1,
+	PLINK_OPEN_SENT,
+	PLINK_OPEN_RCVD,
+	PLINK_CNF_RCVD,
+	PLINK_ESTAB,
+	PLINK_HOLDING,
+	PLINK_BLOCKED,
+};
+
+enum mesh_power_mode {
+	MESH_POWER_ACTIVE = 1,
+	MESH_POWER_LIGHT_SLEEP,
+	MESH_POWER_DEEP_SLEEP,
+};
+
+enum plink_action_field {
+	PLINK_OPEN = 1,
+	PLINK_CONFIRM,
+	PLINK_CLOSE
+};
+
+#endif /* CONFIG_MESH */
+
 #endif /* DEFS_H */
