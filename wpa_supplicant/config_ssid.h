@@ -656,6 +656,14 @@ struct wpa_ssid {
 #endif /* CONFIG_HS20 */
 
 	unsigned int wps_run;
+
+	/**
+	 * no_auto_peer - Do not automatically peer with compatible mesh peers
+	 *
+	 * When unset, the reception of a beacon from a another mesh peer in
+	 * this MBSS will trigger a peering attempt.
+	 */
+	int no_auto_peer;
 };
 
 #endif /* CONFIG_SSID_H */
