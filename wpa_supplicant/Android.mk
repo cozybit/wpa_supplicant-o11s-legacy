@@ -14,6 +14,14 @@ else
   CONFIG_DRIVER_TEST := y
 endif
 
+ifeq ($(WPA_BUILD_SUPPLICANT),true)
+
+# yes to secure mesh, XXX: should be a feature
+ifeq ($(WPA_SUPPLICANT_VERSION),MESH)
+  CONFIG_MESH=y
+  CONFIG_SAE=y
+endif
+
 include $(LOCAL_PATH)/android.config
 
 # To ignore possible wrong network configurations
