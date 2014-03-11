@@ -15,6 +15,32 @@
 #include "common/ieee802_11_common.h"
 #include "wps/wps.h"
 
+#ifdef CONFIG_MESH
+/**
+ * mesh_conf - local MBSS state and settings
+ */
+struct mesh_conf {
+	u8 meshid[32];
+	u8 meshid_len;
+	/* Active Path Selection Protocol Identifier */
+	u8 mesh_pp_id;
+	/* Active Path Selection Metric Identifier */
+	u8 mesh_pm_id;
+	/* Congestion Control Mode Identifier */
+	u8 mesh_cc_id;
+	/* Synchronization Protocol Identifier */
+	u8 mesh_sp_id;
+	/* Authentication Protocol Identifier */
+	u8 mesh_auth_id;
+	u8 *ies;
+	int ie_len;
+#define MESH_CONF_SEC_NONE BIT(0)
+#define MESH_CONF_SEC_AUTH BIT(1)
+#define MESH_CONF_SEC_AMPE BIT(2)
+	int security;
+};
+#endif /* CONFIG_MESH */
+
 #define MAX_STA_COUNT 2007
 #define MAX_VLAN_ID 4094
 
@@ -396,7 +422,8 @@ struct hostapd_bss_config {
 	u8 ip_addr_start[4];
 	u8 ip_addr_end[4];
 #endif /* CONFIG_P2P */
-
+#define MESH_ENABLED BIT(0)
+	int mesh;
 	int disassoc_low_ack;
 	int skip_inactivity_poll;
 
