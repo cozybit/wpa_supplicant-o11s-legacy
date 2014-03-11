@@ -226,6 +226,10 @@ endif
 ifdef CONFIG_WNM
 L_CFLAGS += -DCONFIG_WNM
 OBJS += src/ap/wnm_ap.c
+
+ifdef CONFIG_MESH
+L_CFLAGS += -DCONFIG_MESH
+endif
 endif
 
 ifdef CONFIG_IEEE80211N
