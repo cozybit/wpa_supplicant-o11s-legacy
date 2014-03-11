@@ -731,6 +731,8 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT(dtim_period);
 	INT(beacon_int);
 
+	STR(mesh_ht_mode);
+
 #undef STR
 #undef INT
 #undef INT_DEF
