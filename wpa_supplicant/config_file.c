@@ -1148,6 +1148,9 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 
 	if (config->bgscan)
 		fprintf(f, "bgscan=\"%s\"\n", config->bgscan);
+
+	if (config->user_mpm)
+		fprintf(f, "user_mpm=%d\n", config->user_mpm);
 }
 
 #endif /* CONFIG_NO_CONFIG_WRITE */
