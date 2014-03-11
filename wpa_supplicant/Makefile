@@ -258,7 +258,7 @@ NEED_AES_SIV=y
 NEED_AES_OMAC1=y
 NEED_AES_CTR=y
 CFLAGS += -DCONFIG_MESH
-OBJS += mesh.o
+OBJS += mesh.o mesh_mpm.o
 endif
 
 ifdef CONFIG_P2P
