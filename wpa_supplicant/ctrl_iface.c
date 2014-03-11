@@ -2190,8 +2190,9 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 {
 	char *pos, *end;
 	int ret;
-	const u8 *ie, *ie2, *p2p;
+	const u8 *ie, *ie2, *p2p, *mesh;
 
+	mesh = wpa_bss_get_ie(bss, WLAN_EID_MESH_ID);
 	p2p = wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE);
 	if (!p2p)
 		p2p = wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE);
@@ -2212,11 +2213,19 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 	if (ie)
 		pos = wpa_supplicant_ie_txt(pos, end, "WPA", ie, 2 + ie[1]);
 	ie2 = wpa_bss_get_ie(bss, WLAN_EID_RSN);
-	if (ie2)
-		pos = wpa_supplicant_ie_txt(pos, end, "WPA2", ie2, 2 + ie2[1]);
+	if (ie2) {
+		const char *ie_name = mesh ? "RSN" : "WPA2";
+		pos = wpa_supplicant_ie_txt(pos, end, ie_name, ie2, 2 + ie2[1]);
+	}
 	pos = wpa_supplicant_wps_ie_txt(wpa_s, pos, end, bss);
 	if (!ie && !ie2 && bss->caps & IEEE80211_CAP_PRIVACY) {
 		ret = os_snprintf(pos, end - pos, "[WEP]");
+		if (ret < 0 || ret >= end - pos)
+			return -1;
+		pos += ret;
+	}
+	if (mesh) {
+		ret = os_snprintf(pos, end - pos, "[MESH]");
 		if (ret < 0 || ret >= end - pos)
 			return -1;
 		pos += ret;
