@@ -638,6 +638,14 @@ struct wpa_ssid {
 	 * dereferences since it may not be updated in all cases.
 	 */
 	void *parent_cred;
+
+	/**
+	 * no_auto_peer - Do not automatically peer with compatible mesh peers
+	 *
+	 * When unset, the reception of a beacon from a another mesh peer in this
+	 * MBSS will trigger a peering attempt.
+         */
+	int no_auto_peer;
 };
 
 #endif /* CONFIG_SSID_H */
