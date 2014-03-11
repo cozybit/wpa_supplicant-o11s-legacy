@@ -654,6 +654,14 @@ struct wpa_ssid {
 #ifdef CONFIG_HS20
 	int update_identifier;
 #endif /* CONFIG_HS20 */
+
+	/**
+	 * no_auto_peer - Do not automatically peer with compatible mesh peers
+	 *
+	 * When unset, the reception of a beacon from a another mesh peer in
+	 * this MBSS will trigger a peering attempt.
+	 */
+	int no_auto_peer;
 };
 
 #endif /* CONFIG_SSID_H */
