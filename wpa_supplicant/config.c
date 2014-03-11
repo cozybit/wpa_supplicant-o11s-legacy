@@ -1679,7 +1679,12 @@ static const struct parse_data ssid_fields[] = {
 	{ INTe(fragment_size) },
 	{ INTe(ocsp) },
 #endif /* IEEE8021X_EAPOL */
+#ifdef CONFIG_MESH
+	{ INT_RANGE(mode, 0, 5) },
+	{ INT_RANGE(no_auto_peer, 0, 1) },
+#else
 	{ INT_RANGE(mode, 0, 4) },
+#endif /* CONFIG_MESH */
 	{ INT_RANGE(proactive_key_caching, 0, 1) },
 	{ INT_RANGE(disabled, 0, 2) },
 	{ STR(id_str) },
@@ -3240,6 +3245,7 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
 		return NULL;
 	config->eapol_version = DEFAULT_EAPOL_VERSION;
 	config->ap_scan = DEFAULT_AP_SCAN;
+	config->user_mpm = DEFAULT_USER_MPM;
 	config->fast_reauth = DEFAULT_FAST_REAUTH;
 	config->p2p_go_intent = DEFAULT_P2P_GO_INTENT;
 	config->p2p_intra_bss = DEFAULT_P2P_INTRA_BSS;
@@ -3778,6 +3784,9 @@ static const struct global_parse_data global_fields[] = {
 	{ INT_RANGE(eapol_version, 1, 2), 0 },
 	{ INT(ap_scan), 0 },
 	{ FUNC(bgscan), 0 },
+#ifdef CONFIG_MESH
+	{ INT(user_mpm), 0 },
+#endif /* CONFIG_MESH */
 	{ INT(disable_scan_offload), 0 },
 	{ INT(fast_reauth), 0 },
 	{ STR(opensc_engine_path), 0 },
