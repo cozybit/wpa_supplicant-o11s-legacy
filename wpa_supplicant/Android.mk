@@ -208,6 +208,12 @@ endif
 ifdef CONFIG_WNM
 L_CFLAGS += -DCONFIG_WNM
 OBJS += wnm_sta.c
+ifdef CONFIG_MESH
+NEED_80211_COMMON=y
+L_CFLAGS += -DCONFIG_MESH
+OBJS += mesh.c
+OBJS += mesh_mpm.c
+endif
 endif
 
 ifdef CONFIG_TDLS
