@@ -70,6 +70,7 @@ const char * event_to_string(enum wpa_event_type event)
 	E2S(DRIVER_CLIENT_POLL_OK);
 	E2S(EAPOL_TX_STATUS);
 	E2S(CH_SWITCH);
+	E2S(NEW_PEER_CANDIDATE);
 	E2S(WNM);
 	E2S(CONNECT_FAILED_REASON);
 	E2S(DFS_RADAR_DETECTED);
