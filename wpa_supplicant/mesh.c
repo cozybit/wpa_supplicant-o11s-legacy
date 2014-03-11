@@ -7,6 +7,7 @@
  */
 
 #include "mesh.h"
+#include "mesh_mpm.h"
 
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
@@ -36,6 +37,7 @@ void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
 		os_free(ifmsh->mconf);
 	}
 
+	mesh_mpm_deinit(wpa_s, ifmsh);
 	/* take care of shared data */
 	/* FIX: ugly failures when NA to mesh */
 	hostapd_interface_deinit(ifmsh);
@@ -83,6 +85,13 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	int basic_rates_erp[] = {10, 20, 55, 60, 110, 120, 240, -1 };
 	static int default_groups[] = { 19, 20, 21, 25, 26 };
 	size_t len;
+
+	if (!wpa_s->conf->user_mpm) {
+		/* not much for us to do here */
+		wpa_msg(wpa_s, MSG_WARNING, "WARNING: user_mpm is not enabled"
+			" on wpa_supplicant.conf");
+		return 0;
+	}
 
 	/* TODO: register CMD_NEW_PEER_CANDIDATE events, setup RSN IEs if RSN
 	 * mesh, and init MPM in general */
@@ -218,6 +227,7 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* TODO: verify this peer matches MBSS before inserting! */
 	/* TODO: process in SAE, which will allocate station if authenticated. */
 	/* just immediately allocate peer for now, and insert into driver */
+	wpa_mesh_new_mesh_peer(wpa_s, addr, &elems);
 }
 
 int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
@@ -241,10 +251,16 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE) {
 		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
 		params.flags |= WPA_DRIVER_MESH_FLAG_AMPE;
+		wpa_s->conf->user_mpm = 1;
 	}
 
-	params.flags |= WPA_DRIVER_MESH_FLAG_DRIVER_MPM;
-	params.conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
+	if (wpa_s->conf->user_mpm) {
+		params.flags |= WPA_DRIVER_MESH_FLAG_USER_MPM;
+		params.conf.flags &= ~WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
+	} else {
+		params.flags |= WPA_DRIVER_MESH_FLAG_DRIVER_MPM;
+		params.conf.flags |= WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS;
+	}
 
 	if (wpa_supplicant_mesh_init(wpa_s, ssid)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh");
@@ -276,6 +292,7 @@ int wpa_supplicant_leave_mesh(struct wpa_supplicant *wpa_s)
 
 	wpa_msg(wpa_s, MSG_INFO, "leaving mesh");
 
+	mesh_mpm_deinit(wpa_s, wpa_s->ifmsh);
 	ret = wpa_drv_leave_mesh(wpa_s);
 
         if (ret)
