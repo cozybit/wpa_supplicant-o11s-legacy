@@ -52,8 +52,8 @@ L_CFLAGS += -mabi=aapcs-linux
 endif
 
 INCLUDES = $(LOCAL_PATH)
-INCLUDES += $(LOCAL_PATH)/src
-INCLUDES += $(LOCAL_PATH)/src/utils
+INCLUDES += $(LOCAL_PATH)/../src
+INCLUDES += $(LOCAL_PATH)/../src/utils
 INCLUDES += external/openssl/include
 INCLUDES += system/security/keystore/include
 ifdef CONFIG_DRIVER_NL80211
@@ -249,7 +249,7 @@ ifdef CONFIG_IEEE80211AC
 L_CFLAGS += -DCONFIG_IEEE80211AC
 endif
 
-include $(LOCAL_PATH)/src/drivers/drivers.mk
+include $(LOCAL_PATH)/../src/drivers/drivers.mk
 
 OBJS += $(DRV_AP_OBJS)
 L_CFLAGS += $(DRV_AP_CFLAGS)
@@ -908,9 +908,22 @@ endif
 include $(CLEAR_VARS)
 LOCAL_MODULE := hostapd_cli
 LOCAL_MODULE_TAGS := debug
-LOCAL_SHARED_LIBRARIES := libc libcutils liblog
+LOCAL_SHARED_LIBRARIES := libc libcutils liblog libcrypto libssl
+
+ifdef CONFIG_DRIVER_NL80211
+ifneq ($(wildcard external/libnl),)
+LOCAL_SHARED_LIBRARIES += libnl
+else
+LOCAL_STATIC_LIBRARIES += libnl_2
+endif
+endif
+
+ifneq ($(BOARD_WPA_SUPPLICANT_PRIVATE_LIB),)
+LOCAL_STATIC_LIBRARIES += $(BOARD_WPA_SUPPLICANT_PRIVATE_LIB)
+endif
+
 LOCAL_CFLAGS := $(L_CFLAGS)
-LOCAL_SRC_FILES := $(OBJS_c)
+LOCAL_SRC_FILES := $(filter-out src/%,$(OBJS)) $(addprefix ../,$(filter src/%,$(OBJS)))
 LOCAL_C_INCLUDES := $(INCLUDES)
 include $(BUILD_EXECUTABLE)
 
@@ -933,7 +946,7 @@ LOCAL_STATIC_LIBRARIES += libnl_2
 endif
 endif
 LOCAL_CFLAGS := $(L_CFLAGS)
-LOCAL_SRC_FILES := $(OBJS)
+LOCAL_SRC_FILES := $(filter-out src/%,$(OBJS)) $(addprefix ../,$(filter src/%,$(OBJS)))
 LOCAL_C_INCLUDES := $(INCLUDES)
 include $(BUILD_EXECUTABLE)
 
