@@ -962,7 +962,7 @@ struct wpa_driver_capa {
 #define WPA_DRIVER_FLAGS_MESH				0x0000000100000000
 /* Driver supports RSN mesh with user space MPM */
 #define WPA_DRIVER_FLAGS_MESH_RSN			0x0000000200000000
-	unsigned long int flags;
+	u64 flags;
 
 	int max_scan_ssids;
 	int max_sched_scan_ssids;
