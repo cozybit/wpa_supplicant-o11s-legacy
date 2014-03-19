@@ -241,6 +241,10 @@ static void send_auth_reply(struct hostapd_data *hapd,
 	u8 *buf;
 	size_t rlen;
 
+	/* Per IEEE Std802.11 Sec 8.3.3.1, mesh frames have TA in address 3 */
+	if (hapd->conf->mesh & MESH_ENABLED)
+		bssid = hapd->own_addr;
+
 	rlen = IEEE80211_HDRLEN + sizeof(reply->u.auth) + ies_len;
 	buf = os_zalloc(rlen);
 	if (buf == NULL)

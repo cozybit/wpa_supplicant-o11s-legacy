@@ -236,7 +236,7 @@ static void mesh_rsn_send_auth(struct wpa_supplicant *wpa_s,
 					   WLAN_FC_STYPE_AUTH);
 	os_memcpy(auth->da, dst, ETH_ALEN);
 	os_memcpy(auth->sa, src, ETH_ALEN);
-	os_memcpy(auth->bssid, dst, ETH_ALEN);
+	os_memcpy(auth->bssid, src, ETH_ALEN);
 
 	auth->u.auth.auth_alg = host_to_le16(WLAN_AUTH_SAE);
 	auth->u.auth.auth_transaction = host_to_le16(auth_transaction);
