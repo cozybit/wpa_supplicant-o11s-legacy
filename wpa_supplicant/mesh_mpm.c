@@ -554,15 +554,15 @@ mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
 }
 
 static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
-			 enum plink_event next_state)
+			 enum plink_event event)
 {
 	struct mesh_conf *conf = wpa_s->ifmsh->mconf;
 	u16 reason = 0;
 
-	mpl_dbg(wpa_s, sta, next_state);
+	mpl_dbg(wpa_s, sta, event);
 	switch (sta->plink_state) {
 	case PLINK_LISTEN:
-		switch (next_state) {
+		switch (event) {
 		case CLS_ACPT:
 			mesh_mpm_fsm_restart(wpa_s, sta);
 			break;
@@ -575,7 +575,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		break;
 
 	case PLINK_OPEN_SENT:
-		switch (next_state) {
+		switch (event) {
 		case OPN_RJCT:
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
@@ -602,7 +602,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		break;
 
 	case PLINK_OPEN_RCVD:
-		switch (next_state) {
+		switch (event) {
 		case OPN_RJCT:
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
@@ -629,7 +629,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		break;
 
 	case PLINK_CNF_RCVD:
-		switch (next_state) {
+		switch (event) {
 		case OPN_RJCT:
 		case CNF_RJCT:
 			reason = WLAN_REASON_MESH_CONFIG_POLICY_VIOLATION;
@@ -651,7 +651,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		break;
 
 	case PLINK_ESTAB:
-		switch (next_state) {
+		switch (event) {
 		case CLS_ACPT:
 			wpa_mesh_set_plink_state(wpa_s, sta, PLINK_HOLDING);
 			reason = WLAN_REASON_MESH_CLOSE_RCVD;
@@ -679,7 +679,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		}
 		break;
 	case PLINK_HOLDING:
-		switch (next_state) {
+		switch (event) {
 		case CLS_ACPT:
 			mesh_mpm_fsm_restart(wpa_s, sta);
 			break;
@@ -695,8 +695,8 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 		}
 		break;
 	default:
-		wpa_msg(wpa_s, MSG_INFO, "Unsupported MPM transition: %d -> %d",
-			sta->plink_state, next_state);
+		wpa_msg(wpa_s, MSG_INFO, "Unsupported MPM event %s for state %s",
+					mplevent[event], mplstate[sta->plink_state]);
 		break;
 	}
 /* TODO
