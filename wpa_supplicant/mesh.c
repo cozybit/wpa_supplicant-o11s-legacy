@@ -213,6 +213,13 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			  const u8 *ies, int ie_len)
 {
 	struct ieee802_11_elems elems;
+	struct wpa_ssid *ssid = wpa_s->current_ssid;
+
+	if (ssid && ssid->no_auto_peer) {
+		wpa_msg(wpa_s, MSG_INFO, "ignored new peer notification for "
+			MACSTR " because of no_auto_peer", MAC2STR(addr));
+		return;
+	}
 
 	wpa_msg(wpa_s, MSG_INFO,
 		"new peer notification for " MACSTR, MAC2STR(addr));
@@ -222,6 +229,7 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 			MAC2STR(addr));
 		return;
 	}
+
 
 	/* TODO: verify this peer matches MBSS before inserting! */
 	/* TODO: process in SAE, which will allocate station if authenticated. */
