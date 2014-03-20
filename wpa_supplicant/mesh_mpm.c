@@ -16,7 +16,8 @@
 #define dot11MeshHoldingTimeout 1
 
 static void
-mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta);
+mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta,
+					enum mesh_plink_state next_state);
 static void
 mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 				       struct sta_info *sta,
@@ -289,7 +290,7 @@ mesh_mpm_auth_peer(struct wpa_supplicant *wpa_s, const u8 *addr)
 		wpa_msg(wpa_s, MSG_ERROR, "Driver failed to set " MACSTR ": %d",
 			MAC2STR(sta->addr), ret);
 
-	mesh_mpm_plink_open(wpa_s, sta);
+	mesh_mpm_plink_open(wpa_s, sta, PLINK_OPEN_SENT);
 }
 
 void
@@ -362,7 +363,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	}
 
 	if (conf->security == MESH_CONF_SEC_NONE)
-		mesh_mpm_plink_open(wpa_s, sta);
+		mesh_mpm_plink_open(wpa_s, sta, PLINK_OPEN_SENT);
 	else
 		mesh_rsn_auth_sae_sta(wpa_s, sta);
 }
@@ -545,12 +546,13 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 
 /* initiate peering with station */
 static void
-mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta)
+mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta,
+						enum mesh_plink_state next_state)
 {
 	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
-	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_OPEN_SENT);
+	wpa_mesh_set_plink_state(wpa_s, sta, next_state);
 }
 
 static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
@@ -567,7 +569,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			mesh_mpm_fsm_restart(wpa_s, sta);
 			break;
 		case OPN_ACPT:
-			mesh_mpm_plink_open(wpa_s, sta);
+			mesh_mpm_plink_open(wpa_s, sta, PLINK_OPEN_RCVD);
 			break;
 		default:
 			break;
