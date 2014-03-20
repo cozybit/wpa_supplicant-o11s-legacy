@@ -1667,7 +1667,6 @@ static const struct parse_data ssid_fields[] = {
 #endif /* IEEE8021X_EAPOL */
 #ifdef CONFIG_MESH
 	{ INT_RANGE(mode, 0, 5) },
-	{ INT_RANGE(auto_peer, 0, 1) },
 #else
 	{ INT_RANGE(mode, 0, 4) },
 #endif /* CONFIG_MESH */
