@@ -2651,6 +2651,8 @@ static int wpa_supplicant_ctrl_iface_set_network(
 		wpa_config_update_psk(ssid);
 	else if (os_strcmp(name, "priority") == 0)
 		wpa_config_update_prio_list(wpa_s->conf);
+	else if (os_strcmp(name, "auto_peer") == 0)
+		ssid->auto_peer = atoi(value);
 
 	return 0;
 }
