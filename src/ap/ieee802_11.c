@@ -425,6 +425,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 {
 	u16 resp = WLAN_STATUS_SUCCESS;
 	struct wpabuf *data = NULL;
+	int start_ampe = 0;
 
 	if (!sta->sae) {
 		if (auth_transaction != 1)
@@ -512,7 +513,6 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 		} else {
 			resp = WLAN_STATUS_SUCCESS;
 			sta->flags |= WLAN_STA_AUTH;
-			wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 			sta->auth_alg = WLAN_AUTH_SAE;
 			mlme_authenticate_indication(hapd, sta);
 
@@ -520,9 +520,11 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			if (sta->sae->state == SAE_CONFIRMED) {
 				sta->sae->state = SAE_ACCEPTED;
 				sae_clear_temp_data(sta->sae);
+				wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 				return;
 			}
 
+			start_ampe = 1;
 			data = auth_build_sae_confirm(hapd, sta);
 			if (data == NULL)
 				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -546,6 +548,8 @@ failed:
 			auth_transaction, resp,
 			data ? wpabuf_head(data) : (u8 *) "",
 			data ? wpabuf_len(data) : 0);
+	if (start_ampe)
+		wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
 	wpabuf_free(data);
 }
 #endif /* CONFIG_SAE */
