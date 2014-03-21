@@ -13,7 +13,9 @@ wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
 	wpa_supplicant_mesh_iface_deinit(wpa_s, wpa_s->ifmsh);
 	wpa_s->ifmsh = NULL;
-	os_free(wpa_s->mesh_rsn);
+	if (wpa_s->mesh_rsn)
+		os_free(wpa_s->mesh_rsn);
+	wpa_s->mesh_rsn = NULL;
 	/* TODO: leave mesh (stop beacon). This will happen on link down
 	 * anyway, so it's not urgent */
 	return;
