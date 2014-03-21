@@ -551,7 +551,6 @@ mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 {
 	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
-	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 	wpa_mesh_set_plink_state(wpa_s, sta, next_state);
 }
 
@@ -570,6 +569,7 @@ static void mesh_mpm_fsm(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 			break;
 		case OPN_ACPT:
 			mesh_mpm_plink_open(wpa_s, sta, PLINK_OPEN_RCVD);
+			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_CONFIRM, 0);
 			break;
 		default:
 			break;
