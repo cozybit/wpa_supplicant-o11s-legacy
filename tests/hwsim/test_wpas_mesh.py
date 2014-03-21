@@ -292,34 +292,6 @@ def _test_wpas_mesh_secure(dev, apdev, test_connectivity):
     test_connectivity(dev[1], dev[0])
 
 
-def test_wpas_mesh_open(dev, apdev):
-    """wpa_supplicant open MESH network connectivity"""
-    id = dev[0].add_network()
-    dev[0].set_network(id, "mode", "5")
-    dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
-    dev[0].set_network(id, "key_mgmt", "NONE")
-    dev[0].set_network(id, "frequency", "2412")
-    dev[0].mesh_group_add(id)
-
-    id = dev[1].add_network()
-    dev[1].set_network(id, "mode", "5")
-    dev[1].set_network_quoted(id, "ssid", "wpas-mesh-open")
-    dev[1].set_network(id, "key_mgmt", "NONE")
-    dev[1].set_network(id, "frequency", "2412")
-    dev[1].mesh_group_add(id)
-
-    # Check for mesh joined
-    check_mesh_group_added(dev[0])
-    check_mesh_group_added(dev[1])
-
-    # Check for peer connected
-    check_mesh_peer_connected(dev[0])
-    check_mesh_peer_connected(dev[1])
-
-    # Test connectivity 0->1 and 1->0
-    hwsim_utils.test_connectivity(dev[0].ifname, dev[1].ifname)
-    hwsim_utils.test_connectivity(dev[1].ifname, dev[0].ifname)
-
 def test_wpas_mesh_secure(dev, apdev):
     return wrap_wpas_mesh_test(_test_wpas_mesh_secure, dev, apdev)
 
