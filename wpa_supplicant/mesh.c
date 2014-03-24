@@ -238,7 +238,7 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	struct wpa_driver_mesh_join_params params;
 	int ret = 0;
 
-	if (!ssid || !ssid->ssid || !ssid->ssid_len) {
+	if (!ssid || !ssid->ssid || !ssid->ssid_len || !ssid->frequency) {
 		ret = -ENOENT;
 		goto out;
 	}
