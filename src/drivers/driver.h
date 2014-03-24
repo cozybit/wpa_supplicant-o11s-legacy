@@ -3851,7 +3851,7 @@ union wpa_event_data {
 	 * @ies: beacon IEs
 	 * @ie_len: length of @ies
 	 *
-	 * Notification of new (peer doesn't exist in driver) mesh peer.
+	 * Notification of new candidate mesh peer.
 	 */
 	struct mesh_peer {
 		u8 peer[ETH_ALEN];
