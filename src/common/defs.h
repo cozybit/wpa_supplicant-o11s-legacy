@@ -307,6 +307,12 @@ enum mesh_plink_state {
 	PLINK_BLOCKED,
 };
 
+enum mesh_power_mode {
+        MESH_POWER_ACTIVE = 1,
+        MESH_POWER_LIGHT_SLEEP,
+        MESH_POWER_DEEP_SLEEP,
+};
+
 enum plink_action_field {
 	PLINK_OPEN = 1,
 	PLINK_CONFIRM,

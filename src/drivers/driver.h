@@ -1040,8 +1040,8 @@ struct hostapd_sta_add_params {
 	u32 flags_mask; /* unset bits in flags */
 #ifdef CONFIG_MESH
 	enum mesh_plink_state plink_state;
-	/* TODO: plink_action */
-	/* TODO: mesh power mode */
+	enum plink_action_field plink_action;
+	enum mesh_power_mode power_mode;
 #endif /* CONFIG_MESH */
 	int set; /* Set STA parameters instead of add */
 	u8 qosinfo;
