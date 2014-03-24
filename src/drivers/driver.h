@@ -832,7 +832,8 @@ struct wpa_driver_ap_params {
 
 struct wpa_driver_mesh_bss_params {
 #define WPA_DRIVER_MESH_CONF_FLAG_AUTO_PLINKS	0x00000001
-	/* TODO: others */
+	/* TODO: Other mesh configuration parameters would go here.  See
+	 * NL80211_MESHCONF_* in nl80211.h for all the mesh config parameters. */
 	unsigned int flags;
 };
 
