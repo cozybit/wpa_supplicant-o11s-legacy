@@ -10021,9 +10021,6 @@ static int wpa_driver_nl80211_if_add(void *priv, enum wpa_driver_if_type type,
 			return -1;
 	}
 
-#ifdef CONFIG_MESH
-	/* TODO: enable mesh if */
-#endif
 	if (drv->global)
 		drv->global->if_add_ifindex = ifidx;
 
