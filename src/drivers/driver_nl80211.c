@@ -2464,7 +2464,6 @@ static void nl80211_new_peer_candidate(struct wpa_driver_nl80211_data *drv,
 	data.mesh_peer.ie_len = ie_len;
 	wpa_supplicant_event(drv->ctx, EVENT_NEW_PEER_CANDIDATE, &data);
 	os_free(data.mesh_peer.ies);
-	return;
 }
 
 
