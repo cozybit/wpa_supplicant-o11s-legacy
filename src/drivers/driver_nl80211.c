@@ -7392,6 +7392,9 @@ static u32 sta_plink_state_nl80211(enum mesh_plink_state state)
 		return NL80211_PLINK_HOLDING;
 	case PLINK_BLOCKED:
 		return NL80211_PLINK_BLOCKED;
+	default:
+		wpa_printf(MSG_ERROR, "nl80211: Invalid mesh plink state %d",
+			   state);
 	}
 	return -1;
 }
