@@ -3610,8 +3610,18 @@ static void wiphy_info_feature_flags(struct wiphy_info_data *info,
 
 	if (flags & NL80211_FEATURE_SK_TX_STATUS)
 		info->data_tx_status = 1;
-	else
-		info->data_tx_status = 0;
+	else {
+
+		/*
+		 * For some reason NL80211_FEATURE_SK_TX_STATUS is not set on
+		 * android (no issues on pc using the same compat-drivers).
+		 * But this feature is needed for wpa_supplicant to use the
+		 * nl80211 frame injection API.
+		 */
+
+		wpa_printf(MSG_WARNING, "nl80211: Assuming NL80211_FEATURE_SK_TX_STATUS");
+		info->data_tx_status = 1;
+	}
 
 	if (flags & NL80211_FEATURE_INACTIVITY_TIMER)
 		capa->flags |= WPA_DRIVER_FLAGS_INACTIVITY_TIMER;
