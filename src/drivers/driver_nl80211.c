@@ -8514,6 +8514,16 @@ nla_put_failure:
 	return ret;
 }
 
+static int wpa_driver_nl80211_init_mesh(struct wpa_driver_nl80211_data *drv)
+{
+	if (wpa_driver_nl80211_set_mode(drv->first_bss,
+					NL80211_IFTYPE_MESH_POINT)) {
+		wpa_printf(MSG_INFO, "nl80211: Failed to set interface into "
+				"mode mode");
+		return -1;
+	}
+	return 0;
+}
 
 static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				  struct wpa_driver_associate_params *params,
@@ -8751,10 +8761,6 @@ static int wpa_driver_nl80211_join_mesh(
 
 	msg = nlmsg_alloc();
 	if (!msg)
-		return -1;
-
-	if (wpa_driver_nl80211_set_mode(drv->first_bss,
-					NL80211_IFTYPE_MESH_POINT))
 		return -1;
 
 	wpa_printf(MSG_DEBUG, "nl80211: mesh join (ifindex=%d)", drv->ifindex);
@@ -11955,6 +11961,7 @@ const struct wpa_driver_ops wpa_driver_nl80211_ops = {
 	.deauthenticate = driver_nl80211_deauthenticate,
 	.authenticate = driver_nl80211_authenticate,
 	.associate = wpa_driver_nl80211_associate,
+	.init_mesh = wpa_driver_nl80211_init_mesh,
 	.join_mesh = wpa_driver_nl80211_join_mesh,
 	.leave_mesh = wpa_driver_nl80211_leave_mesh,
 	.global_init = nl80211_global_init,
