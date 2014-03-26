@@ -68,7 +68,7 @@ static inline int wpa_drv_associate(struct wpa_supplicant *wpa_s,
 static inline int wpa_drv_init_mesh(struct wpa_supplicant *wpa_s)
 {
 	if (wpa_s->driver->init_mesh) {
-		return wpa_s->driver->init_mesh(wpa_s->drv_priv);
+		return wpa_s->driver->init_mesh(wpa_s);
 	}
 	return -1;
 }

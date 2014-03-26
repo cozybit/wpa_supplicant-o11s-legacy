@@ -88,11 +88,6 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	static int default_groups[] = { 19, 20, 21, 25, 26 };
 	size_t len;
 
-	if (wpa_drv_init_mesh(wpa_s)) {
-		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh in driver");
-		return -1;
-	}
-
 	if (!wpa_s->conf->user_mpm) {
 		/* not much for us to do here */
 		wpa_msg(wpa_s, MSG_WARNING, "user_mpm is not enabled"
@@ -182,6 +177,11 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 	}
 
 	hostapd_setup_interface(ifmsh);
+
+	if (wpa_drv_init_mesh(wpa_s->drv_priv)) {
+		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh in driver");
+		return -1;
+	}
 
 	if (mconf->security != MESH_CONF_SEC_NONE) {
 		bss->conf->wpa = ssid->proto;
