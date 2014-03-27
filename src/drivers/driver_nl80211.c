@@ -8514,16 +8514,6 @@ nla_put_failure:
 	return ret;
 }
 
-static int wpa_driver_nl80211_init_mesh(void* priv)
-{
-	if (wpa_driver_nl80211_set_mode(priv, NL80211_IFTYPE_MESH_POINT)) {
-		wpa_printf(MSG_INFO, "nl80211: Failed to set interface into "
-				"mode mode");
-		return -1;
-	}
-	return 0;
-}
-
 static int nl80211_connect_common(struct wpa_driver_nl80211_data *drv,
 				  struct wpa_driver_associate_params *params,
 				  struct nl_msg *msg)
@@ -8745,6 +8735,17 @@ static int wpa_driver_nl80211_connect(
 		ret = wpa_driver_nl80211_try_connect(drv, params);
 	}
 	return ret;
+}
+
+
+static int wpa_driver_nl80211_init_mesh(void *priv)
+{
+	if (wpa_driver_nl80211_set_mode(priv, NL80211_IFTYPE_MESH_POINT)) {
+		wpa_printf(MSG_INFO, "nl80211: Failed to set interface into "
+				"mode mode");
+		return -1;
+	}
+	return 0;
 }
 
 

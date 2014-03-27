@@ -178,7 +178,7 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 
 	hostapd_setup_interface(ifmsh);
 
-	if (wpa_drv_init_mesh(wpa_s->drv_priv)) {
+	if (wpa_drv_init_mesh(wpa_s)) {
 		wpa_msg(wpa_s, MSG_ERROR, "failed to init mesh in driver");
 		return -1;
 	}

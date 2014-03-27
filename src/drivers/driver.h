@@ -2726,7 +2726,6 @@ struct wpa_driver_ops {
 	/**
 	 * init_mesh - Driver specific initialization for mesh
 	 * @priv: Private driver interface data
-	 * @params: Mesh configuration parameters
 	 * Returns: 0 on success, -1 on failure
 	 */
 	int (*init_mesh)(void *priv);
