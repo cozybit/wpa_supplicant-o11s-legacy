@@ -425,7 +425,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 
 	/* IE: mesh conf */
 	wpabuf_put_u8(buf, WLAN_EID_MESH_CONFIG);
-	wpabuf_put_u8(buf, 8);
+	wpabuf_put_u8(buf, 7);
 	wpabuf_put_u8(buf, conf->mesh_pp_id);
 	wpabuf_put_u8(buf, conf->mesh_pm_id);
 	wpabuf_put_u8(buf, conf->mesh_cc_id);
@@ -436,7 +436,6 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	/* always forwarding & accepting plinks for now */
 	/* TODO: PS bits */
 	wpabuf_put_u8(buf, 0x1 | 0x8);
-	wpabuf_put_u8(buf, 0);
 
 	/* IE: Mesh Peering Management element */
 	ie_len = 4;
