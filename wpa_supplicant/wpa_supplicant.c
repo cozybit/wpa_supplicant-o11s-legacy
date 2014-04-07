@@ -856,13 +856,6 @@ static void wpa_supplicant_reconfig(int sig, void *signal_ctx)
 	struct wpa_supplicant *wpa_s;
 
 	for (wpa_s = global->ifaces; wpa_s; wpa_s = wpa_s->next) {
-		if (sig == 1) {
-			/* XXX: FIXME: ignore this signal here, happens once a mesh STA
-			 * finishes joining a secure mesh??? */
-			wpa_dbg(wpa_s, MSG_DEBUG, "FIXME: Signal %d received - ignoring",
-				sig);
-			return;
-		}
 		wpa_dbg(wpa_s, MSG_DEBUG, "Signal %d received - reconfiguring",
 			sig);
 		if (wpa_supplicant_reload_configuration(wpa_s) < 0) {
