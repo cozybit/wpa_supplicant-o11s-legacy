@@ -411,31 +411,36 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		if (type == PLINK_CONFIRM)
 			/* TODO: AID? */
 			wpabuf_put_le16(buf, 0);
+
+		/* IE: supp + ext. supp rates */
+		pos = hostapd_eid_supp_rates(bss, supp_rates);
+		pos = hostapd_eid_ext_supp_rates(bss, pos);
+		wpabuf_put_data(buf, supp_rates, pos - supp_rates);
+
+		/* IE: Mesh ID */
+		wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
+		wpabuf_put_u8(buf, conf->meshid_len);
+		wpabuf_put_data(buf, conf->meshid, conf->meshid_len);
+
+		/* IE: mesh conf */
+		wpabuf_put_u8(buf, WLAN_EID_MESH_CONFIG);
+		wpabuf_put_u8(buf, 7);
+		wpabuf_put_u8(buf, conf->mesh_pp_id);
+		wpabuf_put_u8(buf, conf->mesh_pm_id);
+		wpabuf_put_u8(buf, conf->mesh_cc_id);
+		wpabuf_put_u8(buf, conf->mesh_sp_id);
+		wpabuf_put_u8(buf, conf->mesh_auth_id);
+		/* TODO: formation info */
+		wpabuf_put_u8(buf, 0);
+		/* always forwarding & accepting plinks for now */
+		/* TODO: PS bits */
+		wpabuf_put_u8(buf, 0x1 | 0x8);
+	} else {	/* Peer closing frame */
+		/* IE: Mesh ID */
+		wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
+		wpabuf_put_u8(buf, conf->meshid_len);
+		wpabuf_put_data(buf, conf->meshid, conf->meshid_len);
 	}
-
-	/* IE: supp + ext. supp rates */
-	pos = hostapd_eid_supp_rates(bss, supp_rates);
-	pos = hostapd_eid_ext_supp_rates(bss, pos);
-	wpabuf_put_data(buf, supp_rates, pos - supp_rates);
-
-	/* IE: Mesh ID */
-	wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
-	wpabuf_put_u8(buf, conf->meshid_len);
-	wpabuf_put_data(buf, conf->meshid, conf->meshid_len);
-
-	/* IE: mesh conf */
-	wpabuf_put_u8(buf, WLAN_EID_MESH_CONFIG);
-	wpabuf_put_u8(buf, 7);
-	wpabuf_put_u8(buf, conf->mesh_pp_id);
-	wpabuf_put_u8(buf, conf->mesh_pm_id);
-	wpabuf_put_u8(buf, conf->mesh_cc_id);
-	wpabuf_put_u8(buf, conf->mesh_sp_id);
-	wpabuf_put_u8(buf, conf->mesh_auth_id);
-	/* TODO: formation info */
-	wpabuf_put_u8(buf, 0);
-	/* always forwarding & accepting plinks for now */
-	/* TODO: PS bits */
-	wpabuf_put_u8(buf, 0x1 | 0x8);
 
 	/* IE: Mesh Peering Management element */
 	ie_len = 4;
