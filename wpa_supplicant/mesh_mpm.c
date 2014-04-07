@@ -206,6 +206,7 @@ static void plink_timer(void *eloop_ctx, void *user_data)
 		if (sta->mpm_retries < dot11MeshMaxRetries) {
 			eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 			mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
+			sta->mpm_retries++;
 			break;
 		}
 		reason = WLAN_REASON_MESH_MAX_RETRIES;
