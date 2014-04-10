@@ -201,6 +201,7 @@ def _test_wpas_mesh_open_no_auto(dev, apdev, test_connectivity):
     dev[0].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[0].set_network(id, "key_mgmt", "NONE")
     dev[0].set_network(id, "frequency", "2412")
+    dev[0].set_network(id, "mesh_ht_mode", "HT40+")
     dev[0].mesh_group_add(id)
 
     id = dev[1].add_network()
@@ -208,6 +209,7 @@ def _test_wpas_mesh_open_no_auto(dev, apdev, test_connectivity):
     dev[1].set_network_quoted(id, "ssid", "wpas-mesh-open")
     dev[1].set_network(id, "key_mgmt", "NONE")
     dev[1].set_network(id, "frequency", "2412")
+    dev[1].set_network(id, "mesh_ht_mode", "HT40+")
     dev[1].set_network(id, "no_auto_peer", "1")
     dev[1].mesh_group_add(id)
 
