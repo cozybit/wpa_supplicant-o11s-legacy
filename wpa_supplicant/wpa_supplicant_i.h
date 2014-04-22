@@ -561,7 +561,7 @@ struct wpa_supplicant {
 	int scan_for_connection; /* whether the scan request was triggered for
 				  * finding a connection */
 
-	unsigned int drv_flags;
+	u64 drv_flags;
 	unsigned int drv_enc;
 
 	/*
