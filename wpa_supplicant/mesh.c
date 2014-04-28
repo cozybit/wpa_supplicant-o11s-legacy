@@ -6,6 +6,14 @@
  * See README for more details.
  */
 
+
+#include "utils/includes.h"
+#include "utils/common.h"
+#include "config_ssid.h"
+#include "config.h"
+#include "wpa_supplicant_i.h"
+#include "driver_i.h"
+#include "ap.h"
 #include "mesh.h"
 #include "mesh_mpm.h"
 #include "mesh_rsn.h"
@@ -204,6 +212,8 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 			goto out_free;
 	}
 
+	wpa_supplicant_conf_ap_ht(wpa_s, ssid, conf);
+
 	return 0;
 out_free:
 	wpa_supplicant_mesh_deinit(wpa_s);
@@ -255,6 +265,9 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
 	params.meshid = ssid->ssid;
 	params.meshid_len = ssid->ssid_len;
 	params.freq = ssid->frequency;
+#ifdef CONFIG_IEEE80211N
+	params.ht_mode = ssid->mesh_ht_mode;
+#endif /* CONFIG_IEEE80211N */
 
 	if (ssid->key_mgmt & WPA_KEY_MGMT_SAE) {
 		params.flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
