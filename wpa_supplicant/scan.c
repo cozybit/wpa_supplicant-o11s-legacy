@@ -446,6 +446,12 @@ static struct wpabuf * wpa_supplicant_extra_ies(struct wpa_supplicant *wpa_s)
 
 #endif /* CONFIG_WPS */
 
+	/* Add wildcard meshid for active scanning purpose */
+	if (wpabuf_resize(&extra_ie, 2) == 0) {
+		wpabuf_put_u8(extra_ie, WLAN_EID_MESH_ID);
+		wpabuf_put_u8(extra_ie, 0);
+	}
+
 	return extra_ie;
 }
 
