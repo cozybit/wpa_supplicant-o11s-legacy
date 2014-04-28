@@ -322,6 +322,10 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 
 	mesh_mpm_init_link(wpa_s, sta);
 
+	copy_sta_ht_capab(data, sta, elems->ht_capabilities,
+			elems->ht_capabilities_len);
+	update_ht_state(data, sta);
+
 	/* insert into driver */
 	os_memset(&params, 0, sizeof(params));
 	params.supp_rates = sta->supported_rates;
@@ -331,7 +335,7 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 	/* not used for mesh */
 	params.aid = 1;
 	params.listen_interval = 100;
-	/* TODO: HT capabilities */
+	params.ht_capabilities = sta->ht_capabilities;
 	params.flags |= WPA_STA_WMM;
 	params.flags_mask |= WPA_STA_AUTHENTICATED;
 	if (conf->security == MESH_CONF_SEC_NONE) {
@@ -370,6 +374,7 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
+	u8 ht_capa_oper[2 + 26 + 2 + 22];
 	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
@@ -426,6 +431,12 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		wpabuf_put_u8(buf, 0);
 		/* always forwarding & accepting plinks for now */
 		wpabuf_put_u8(buf, 0x1 | 0x8);
+#ifdef CONFIG_IEEE80211N
+		pos = hostapd_eid_ht_capabilities(bss, ht_capa_oper);
+		pos = hostapd_eid_ht_operation(bss, pos);
+		wpabuf_put_data(buf, ht_capa_oper, pos - ht_capa_oper);
+#endif /* CONFIG_IEEE80211N */
+
 	} else {	/* Peer closing frame */
 		/* IE: Mesh ID */
 		wpabuf_put_u8(buf, WLAN_EID_MESH_ID);
@@ -470,8 +481,6 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 		wpabuf_put_le16(buf, close_reason);
 	if (ampe)
 		mesh_rsn_get_pmkid(sta, (u8 *) wpabuf_put(buf, PMKID_LEN));
-
-	/* TODO HT IEs */
 
 	if (ampe && mesh_rsn_protect_frame(wpa_s->mesh_rsn, sta, cat, buf)) {
 		wpa_msg(wpa_s, MSG_INFO,
