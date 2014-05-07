@@ -1516,6 +1516,17 @@ static int wpa_config_parse_psk_list(const struct parse_data *data,
 	return 0;
 }
 
+#ifndef NO_CONFIG_WRITE
+static char * wpa_config_write_psk_list(const struct parse_data *data,
+					struct wpa_ssid *ssid)
+{
+	return NULL;
+}
+#endif /* NO_CONFIG_WRITE */
+
+#endif /* CONFIG_P2P */
+
+#ifdef CONFIG_MESH
 static int wpa_config_parse_mesh_ht_mode(const struct parse_data *data,
 					 struct wpa_ssid *ssid, int line,
 					 const char *value)
@@ -1567,15 +1578,7 @@ static char * wpa_config_write_mesh_ht_mode(const struct parse_data *data,
 }
 #endif /* NO_CONFIG_WRITE */
 
-#ifndef NO_CONFIG_WRITE
-static char * wpa_config_write_psk_list(const struct parse_data *data,
-					struct wpa_ssid *ssid)
-{
-	return NULL;
-}
-#endif /* NO_CONFIG_WRITE */
-
-#endif /* CONFIG_P2P */
+#endif /* CONFIG_MESH */
 
 /* Helper macros for network block parser */
 
@@ -1744,7 +1747,9 @@ static const struct parse_data ssid_fields[] = {
 	{ INT_RANGE(peerkey, 0, 1) },
 	{ INT_RANGE(mixed_cell, 0, 1) },
 	{ INT_RANGE(frequency, 0, 65000) },
+#ifdef CONFIG_MESH
 	{ FUNC(mesh_ht_mode) },
+#endif
 	{ INT(wpa_ptk_rekey) },
 	{ STR(bgscan) },
 	{ INT_RANGE(ignore_broadcast_ssid, 0, 2) },
@@ -2211,7 +2216,9 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 	ssid->eap_workaround = DEFAULT_EAP_WORKAROUND;
 	ssid->eap.fragment_size = DEFAULT_FRAGMENT_SIZE;
 #endif /* IEEE8021X_EAPOL */
+#ifdef CONFIG_MESH
 	ssid->mesh_ht_mode = DEFAULT_MESH_HT_MODE;
+#endif
 #ifdef CONFIG_HT_OVERRIDES
 	ssid->disable_ht = DEFAULT_DISABLE_HT;
 	ssid->disable_ht40 = DEFAULT_DISABLE_HT40;
