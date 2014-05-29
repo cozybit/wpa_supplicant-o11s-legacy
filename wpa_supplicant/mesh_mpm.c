@@ -191,12 +191,13 @@ static void mesh_mpm_fsm_restart(struct wpa_supplicant *wpa_s,
 		return;
 	}
 
+	eloop_cancel_timeout(plink_timer, wpa_s, sta);
 	wpa_mesh_set_plink_state(wpa_s, sta, PLINK_LISTEN);
 	sta->my_lid = sta->peer_lid = sta->mpm_close_reason = 0;
 	sta->mpm_retries = 0;
 }
 
-static void plink_timer(void *eloop_ctx, void *user_data)
+void plink_timer(void *eloop_ctx, void *user_data)
 {
 	struct wpa_supplicant *wpa_s = eloop_ctx;
 	struct sta_info *sta = user_data;
@@ -538,6 +539,8 @@ static void mesh_mpm_plink_estab(struct wpa_supplicant *wpa_s,
 
 	sta->flags |= WLAN_STA_ASSOC;
 
+	eloop_cancel_timeout(plink_timer, wpa_s, sta);
+
 	/* Send ctrl event */
 	wpa_msg_ctrl(wpa_s, MSG_INFO, MESH_PEER_CONNECTED MACSTR,
 		     MAC2STR(sta->addr));
@@ -548,6 +551,7 @@ static void
 mesh_mpm_plink_open(struct wpa_supplicant *wpa_s, struct sta_info *sta,
 						enum mesh_plink_state next_state)
 {
+	eloop_cancel_timeout(plink_timer, wpa_s, sta);
 	eloop_register_timeout(dot11MeshRetryTimeout, 0, plink_timer, wpa_s, sta);
 	mesh_mpm_send_plink_action(wpa_s, sta, PLINK_OPEN, 0);
 	wpa_mesh_set_plink_state(wpa_s, sta, next_state);
