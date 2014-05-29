@@ -299,6 +299,7 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	struct wpabuf *buf;
+	unsigned int r_value;
 
 	if (!sta->sae) {
 		sta->sae = os_zalloc(sizeof(*sta->sae));
@@ -320,7 +321,8 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 	mesh_rsn_send_auth(wpa_s, sta->addr, wpa_s->own_addr,
 			   SAE_COMMITTED, WLAN_STATUS_SUCCESS, buf);
 
-	eloop_register_timeout(MESH_AUTH_TIMEOUT, 0, mesh_auth_timer,
+	r_value = rand() % MESH_AUTH_TIMEOUT;
+	eloop_register_timeout((MESH_AUTH_TIMEOUT + r_value), 0, mesh_auth_timer,
 			       wpa_s, sta);
 
 	wpabuf_free(buf);
