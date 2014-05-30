@@ -201,8 +201,14 @@ endif
 
 ifdef CONFIG_MESH
 NEED_80211_COMMON=y
+NEED_SHA256=y
+NEED_AES_SIV=y
+NEED_AES_OMAC1=y
+NEED_AES_CTR=y
+CONFIG_SAE=y
+CONFIG_AP=y
 CFLAGS += -DCONFIG_MESH
-OBJS += mesh.o mesh_mpm.o
+OBJS += mesh.o mesh_mpm.o mesh_rsn.o
 endif
 
 ifdef CONFIG_SAE
