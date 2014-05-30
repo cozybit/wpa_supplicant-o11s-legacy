@@ -210,9 +210,13 @@ L_CFLAGS += -DCONFIG_WNM
 OBJS += wnm_sta.c
 ifdef CONFIG_MESH
 NEED_80211_COMMON=y
+NEED_AES_SIV=y
+NEED_AES_OMAC1=y
+NEED_AES_CTR=y
 L_CFLAGS += -DCONFIG_MESH
 OBJS += mesh.c
 OBJS += mesh_mpm.c
+OBJS += mesh_rsn.c
 endif
 endif
 

@@ -8,12 +8,16 @@
 
 #include "mesh.h"
 #include "mesh_mpm.h"
+#include "mesh_rsn.h"
 
 static void
 wpa_supplicant_mesh_deinit(struct wpa_supplicant *wpa_s)
 {
 	wpa_supplicant_mesh_iface_deinit(wpa_s, wpa_s->ifmsh);
 	wpa_s->ifmsh = NULL;
+	if (wpa_s->mesh_rsn)
+		os_free(wpa_s->mesh_rsn);
+	wpa_s->mesh_rsn = NULL;
 	/* TODO: leave mesh (stop beacon). This will happen on link down
 	 * anyway, so it's not urgent */
 }
@@ -195,6 +199,10 @@ wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
 		len = os_strlen(ssid->passphrase);
 		bss->conf->ssid.wpa_passphrase =
 			dup_binstr(ssid->passphrase, len);
+
+		wpa_s->mesh_rsn = mesh_rsn_auth_init(wpa_s, mconf);
+		if (!wpa_s->mesh_rsn)
+			goto out_free;
 	}
 
 	return 0;
