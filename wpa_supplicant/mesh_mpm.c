@@ -344,9 +344,11 @@ wpa_mesh_new_mesh_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
 
 	mesh_mpm_init_link(wpa_s, sta);
 
+#ifdef CONFIG_IEEE80211N
 	copy_sta_ht_capab(data, sta, elems->ht_capabilities,
 			elems->ht_capabilities_len);
 	update_ht_state(data, sta);
+#endif /* CONFIG_IEEE80211N */
 
 	/* insert into driver */
 	os_memset(&params, 0, sizeof(params));
@@ -395,7 +397,9 @@ static void mesh_mpm_send_plink_action(struct wpa_supplicant *wpa_s,
 	struct hostapd_data *bss = ifmsh->bss[0];
 	struct mesh_conf *conf = ifmsh->mconf;
 	u8 supp_rates[2 + 2 + 32];
+#ifdef CONFIG_IEEE80211N
 	u8 ht_capa_oper[2 + 26 + 2 + 22];
+#endif /* CONFIG_IEEE80211N */
 	u8 *pos, *cat;
 	u8 ie_len, add_plid = 0;
 	int ret;
