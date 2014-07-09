@@ -37,6 +37,7 @@ void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
 		return;
 
 	if (ifmsh->mconf) {
+		mesh_mpm_deinit(wpa_s, ifmsh);
 		if (ifmsh->mconf->ies)
 			ifmsh->mconf->ies = NULL;
 			/* We cannot free this struct
@@ -46,9 +47,9 @@ void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
 			 * let hostapd code free it.
 			 */
 		os_free(ifmsh->mconf);
+		ifmsh->mconf = NULL;
 	}
 
-	mesh_mpm_deinit(wpa_s, ifmsh);
 	/* take care of shared data */
 	/* FIX: ugly failures when NA to mesh */
 	hostapd_interface_deinit(ifmsh);
