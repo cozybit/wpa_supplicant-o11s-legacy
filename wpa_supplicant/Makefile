@@ -216,10 +216,6 @@ CFLAGS += -DCONFIG_MESH
 OBJS += mesh.o mesh_mpm.o mesh_rsn.o
 endif
 
-CFLAGS += -DCONFIG_MESH
-OBJS += mesh.o mesh_mpm.o
-endif
-
 ifdef CONFIG_SAE
 CFLAGS += -DCONFIG_SAE
 OBJS += ../src/common/sae.o

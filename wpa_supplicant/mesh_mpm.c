@@ -294,7 +294,6 @@ mesh_mpm_deinit(struct wpa_supplicant *wpa_s, struct hostapd_iface *ifmsh)
 
 	/* notify peers we're leaving */
 	ap_for_each_sta(hapd, mesh_mpm_plink_close, (void*)wpa_s);
-	/* TODO: deregister frames and events */
 
 	hapd->num_plinks = 0;
 	hostapd_free_stas(hapd);
@@ -866,4 +865,11 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
 		return;
 	}
 	mesh_mpm_fsm(wpa_s, sta, event);
+}
+
+/* called by ap_free_sta */
+void mesh_mpm_free_sta(struct sta_info *sta)
+{
+	eloop_cancel_timeout(plink_timer, ELOOP_ALL_CTX, sta);
+	eloop_cancel_timeout(mesh_auth_timer, ELOOP_ALL_CTX, sta);
 }

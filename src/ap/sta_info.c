@@ -33,6 +33,10 @@
 #include "wnm_ap.h"
 #include "sta_info.h"
 
+#ifdef CONFIG_MESH
+#include "../../wpa_supplicant/mesh_mpm.h"
+#endif
+
 static void ap_sta_remove_in_other_bss(struct hostapd_data *hapd,
 				       struct sta_info *sta);
 static void ap_handle_session_timer(void *eloop_ctx, void *timeout_ctx);
@@ -219,6 +223,10 @@ void ap_free_sta(struct hostapd_data *hapd, struct sta_info *sta)
 	if (hostapd_ht_operation_update(hapd->iface) > 0)
 		set_beacon++;
 #endif /* NEED_AP_MLME && CONFIG_IEEE80211N */
+
+#ifdef CONFIG_MESH
+	mesh_mpm_free_sta(sta);
+#endif
 
 	if (set_beacon)
 		ieee802_11_set_beacons(hapd->iface);
