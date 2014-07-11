@@ -18,6 +18,30 @@
 #include "crypto/aes_siv.h"
 #include "wpas_glue.h"
 
+#define MESH_AUTH_TIMEOUT 10
+#define MESH_AUTH_RETRY 3
+
+void mesh_auth_timer(void *eloop_ctx, void *user_data)
+{
+	struct wpa_supplicant *wpa_s = eloop_ctx;
+	struct sta_info *sta = user_data;
+
+	if (sta->sae->state != SAE_ACCEPTED) {
+		wpa_printf(MSG_DEBUG, "AUTH: Re-authenticate with "
+			   MACSTR " (attempt %d) ", MAC2STR(sta->addr),
+			   sta->sae_auth_retry);
+		if (sta->sae_auth_retry < MESH_AUTH_RETRY) {
+			mesh_rsn_auth_sae_sta(wpa_s, sta);
+		} else {
+			/* block the STA if exceeded the number of attempts */
+			sta->plink_state = PLINK_BLOCKED;
+			sta->sae->state = SAE_NOTHING;
+		}
+		sta->sae_auth_retry++;
+	}
+
+}
+
 static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 			const char *txt)
 {
@@ -27,7 +51,6 @@ static void auth_logger(void *ctx, const u8 *addr, logger_level level,
 	else
 		wpa_printf(MSG_DEBUG, "AUTH: %s", txt);
 }
-
 
 static const u8 *auth_get_psk(void *ctx, const u8 *addr,
 			      const u8 *p2p_dev_addr, const u8 *prev_psk)
@@ -72,9 +95,16 @@ static int auth_set_key(void *ctx, int vlan_id, enum wpa_alg alg,
 static int auth_start_ampe(void *ctx, const u8 *addr)
 {
 	struct mesh_rsn *mesh_rsn = ctx;
+	struct hostapd_data *hapd;
+	struct sta_info *sta;
 
 	if (mesh_rsn->wpa_s->current_ssid->mode != WPAS_MODE_MESH)
 		return -1;
+
+	hapd = mesh_rsn->wpa_s->ifmsh->bss[0];
+	sta = ap_get_sta(hapd, addr);
+	if (sta)
+		eloop_cancel_timeout(mesh_auth_timer, mesh_rsn->wpa_s, sta);
 
 	mesh_mpm_auth_peer(mesh_rsn->wpa_s, addr);
 	return 0;
@@ -178,7 +208,7 @@ static int mesh_rsn_sae_group(struct wpa_supplicant *wpa_s,
 
 	for (;;) {
 		int group = groups[wpa_s->mesh_rsn->sae_group_index];
-		if (group < 0)
+		if (group <= 0)
 			break;
 		if (sae_set_group(sae, group) == 0) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "SME: Selected SAE group %d",
@@ -271,6 +301,7 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 {
 	struct wpa_ssid *ssid = wpa_s->current_ssid;
 	struct wpabuf *buf;
+	unsigned int rnd;
 
 	if (!sta->sae) {
 		sta->sae = os_zalloc(sizeof(*sta->sae));
@@ -292,6 +323,9 @@ int mesh_rsn_auth_sae_sta(struct wpa_supplicant *wpa_s,
 	mesh_rsn_send_auth(wpa_s, sta->addr, wpa_s->own_addr,
 			   1, WLAN_STATUS_SUCCESS, buf);
 
+	rnd = rand() % MESH_AUTH_TIMEOUT;
+	eloop_register_timeout(MESH_AUTH_TIMEOUT + rnd, 0, mesh_auth_timer,
+			       wpa_s, sta);
 	wpabuf_free(buf);
 	return 0;
 }
