@@ -326,7 +326,8 @@ static void handle_auth_ft_finish(void *ctx, const u8 *dst, const u8 *bssid,
 #ifdef CONFIG_SAE
 
 static struct wpabuf * auth_process_sae_commit(struct hostapd_data *hapd,
-					       struct sta_info *sta)
+					       struct sta_info *sta,
+					       Boolean process)
 {
 	struct wpabuf *buf;
 
@@ -343,9 +344,11 @@ static struct wpabuf * auth_process_sae_commit(struct hostapd_data *hapd,
 		return NULL;
 	}
 
-	if (sae_process_commit(sta->sae) < 0) {
-		wpa_printf(MSG_DEBUG, "SAE: Failed to process peer commit");
-		return NULL;
+	if (process == TRUE) {
+		if (sae_process_commit(sta->sae) < 0) {
+			wpa_printf(MSG_DEBUG, "SAE: Failed to process peer commit");
+			return NULL;
+		}
 	}
 
 	buf = wpabuf_alloc(SAE_COMMIT_MAX_LEN);
@@ -506,7 +509,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 				 * send both commit and confirm since we
 				 * received a commit from peer
 				 */
-				data = auth_process_sae_commit(hapd, sta);
+				data = auth_process_sae_commit(hapd, sta, TRUE);
 				if (data == NULL) {
 					resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 					goto out_reply;
@@ -548,7 +551,7 @@ static void handle_auth_sae(struct hostapd_data *hapd, struct sta_info *sta,
 			 * Resend commit to trigger peer to resend commit
 			 * and confirm.
 			 */
-			data = auth_process_sae_commit(hapd, sta);
+			data = auth_process_sae_commit(hapd, sta, FALSE);
 			if (data == NULL)
 				resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			else
