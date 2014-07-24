@@ -742,8 +742,10 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 #ifdef CONFIG_HS20
 	INT(update_identifier);
 #endif /* CONFIG_HS20 */
-
+#ifdef CONFIG_MESH
 	STR(mesh_ht_mode);
+	STR(mesh_basic_rates);
+#endif /* CONFIG_MESH */
 
 #undef STR
 #undef INT
