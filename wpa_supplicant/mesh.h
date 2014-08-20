@@ -35,4 +35,6 @@ void wpa_supplicant_mesh_add_scan_ie(struct wpa_supplicant *wpa_s,
 				     struct wpabuf **extra_ie);
 void wpa_supplicant_mesh_iface_deinit(struct wpa_supplicant *wpa_s,
 				      struct hostapd_iface *ifmsh);
+int wpas_mesh_scan_result_text(const u8 *ies, size_t ies_len, char *buf,
+			       char *end);
 #endif /* MESH_H */
